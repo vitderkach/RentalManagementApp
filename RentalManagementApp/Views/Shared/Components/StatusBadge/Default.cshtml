@@ -1,0 +1,15 @@
+@model RentalManagementApp.Data.Entities.ApplicationStatus
+
+@{
+    var css = Model switch
+    {
+        RentalManagementApp.Data.Entities.ApplicationStatus.Draft => "bg-secondary",
+        RentalManagementApp.Data.Entities.ApplicationStatus.Submitted => "bg-primary",
+        RentalManagementApp.Data.Entities.ApplicationStatus.Returned => "bg-warning text-dark",
+        RentalManagementApp.Data.Entities.ApplicationStatus.Approved => "bg-success",
+        RentalManagementApp.Data.Entities.ApplicationStatus.Denied => "bg-danger",
+        RentalManagementApp.Data.Entities.ApplicationStatus.Withdrawn => "bg-dark",
+        _ => "bg-secondary"
+    };
+}
+<span class="badge @css">@Model</span>

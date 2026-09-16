@@ -1,0 +1,101 @@
+@model RentalManagementApp.ViewModels.Properties.PropertiesIndexViewModel
+@{
+    ViewData["Title"] = "Properties";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Properties</h2>
+    <button type="button" class="btn btn-primary open-property-modal">+ Add Property</button>
+</div>
+
+<div id="properties-list">
+    @foreach (var property in Model.Properties)
+    {
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>@property.Name</strong>
+                    <div class="text-muted small">@property.AddressLine1, @property.City, @property.State @property.ZipCode</div>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary open-property-modal" data-id="@property.Id">Edit</button>
+                    <form method="post" asp-action="DeleteProperty" class="d-inline ajax-post-form" onsubmit="return confirm('Delete this property?');">
+                        <input type="hidden" name="id" value="@property.Id" />
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                    </form>
+                    <button type="button" class="btn btn-sm btn-outline-primary open-unit-modal" data-property-id="@property.Id">+ Add Unit</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>Unit</th><th>Bedrooms</th><th>Rent</th><th>Type</th><th>Availability</th><th></th></tr></thead>
+                    <tbody>
+                    @foreach (var unit in property.Units)
+                    {
+                        <tr>
+                            <td>@unit.UnitNumber</td>
+                            <td>@unit.Bedrooms</td>
+                            <td>@unit.MonthlyRent.ToString("C")</td>
+                            <td>@unit.UnitTypeName</td>
+                            <td>@(unit.IsAvailable ? "Available" : "Leased")</td>
+                            <td class="text-end">
+                                <button type="button" class="btn btn-sm btn-outline-secondary open-unit-modal" data-property-id="@property.Id" data-unit-id="@unit.Id">Edit</button>
+                                @if (!unit.HasApplications)
+                                {
+                                    <form method="post" asp-action="DeleteUnit" class="d-inline ajax-post-form" onsubmit="return confirm('Delete this unit?');">
+                                        <input type="hidden" name="id" value="@unit.Id" />
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    @if (!property.Units.Any())
+                    {
+                        <tr><td colspan="6" class="text-muted">No units yet.</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    @if (!Model.Properties.Any())
+    {
+        <p class="text-muted">No properties yet. Add your first property to get started.</p>
+    }
+</div>
+
+<div class="modal fade" id="propertyModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content" id="propertyModalBody"></div></div>
+</div>
+<div class="modal fade" id="unitModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content" id="unitModalBody"></div></div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('click', function (e) {
+            var propBtn = e.target.closest('.open-property-modal');
+            if (propBtn) {
+                var id = propBtn.dataset.id || '';
+                fetch(`/Properties/PropertyModal?id=${id}`).then(r => r.text()).then(html => {
+                    document.getElementById('propertyModalBody').innerHTML = html;
+                    new bootstrap.Modal(document.getElementById('propertyModal')).show();
+                });
+            }
+
+            var unitBtn = e.target.closest('.open-unit-modal');
+            if (unitBtn) {
+                var propertyId = unitBtn.dataset.propertyId;
+                var unitId = unitBtn.dataset.unitId || '';
+                fetch(`/Properties/UnitModal?propertyId=${propertyId}&id=${unitId}`).then(r => r.text()).then(html => {
+                    document.getElementById('unitModalBody').innerHTML = html;
+                    new bootstrap.Modal(document.getElementById('unitModal')).show();
+                });
+            }
+        });
+    </script>
+}

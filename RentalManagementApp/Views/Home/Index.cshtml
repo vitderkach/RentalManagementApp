@@ -1,8 +1,25 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@using RentalManagementApp.Data.Entities
+@{
+    ViewData["Title"] = "Home";
 }
 
 <div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    <h1 class="display-5">Property Rental Management</h1>
+    <p class="lead">Apply for apartments, manage properties, and review applications - all in one place.</p>
+
+    @if (User.Identity?.IsAuthenticated != true)
+    {
+        <a class="btn btn-primary me-2" asp-controller="Account" asp-action="Register">Get Started</a>
+        <a class="btn btn-outline-secondary" asp-controller="Account" asp-action="Login">Log In</a>
+    }
+    else if (User.IsInRole(Roles.PropertyManager))
+    {
+        <a class="btn btn-primary me-2" asp-controller="Properties" asp-action="Index">Manage Properties</a>
+        <a class="btn btn-outline-secondary" asp-controller="Applications" asp-action="Index">Review Applications</a>
+    }
+    else
+    {
+        <a class="btn btn-primary me-2" asp-controller="Properties" asp-action="Browse">Browse Available Units</a>
+        <a class="btn btn-outline-secondary" asp-controller="Applications" asp-action="Index">My Applications</a>
+    }
 </div>

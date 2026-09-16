@@ -1,0 +1,50 @@
+@model RentalManagementApp.ViewModels.Applications.ApplicationListViewModel
+@{
+    ViewData["Title"] = "Applications";
+}
+
+<h2>@(Model.IsManager ? "All Applications" : "My Applications")</h2>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-auto">
+        <select name="status" class="form-select" asp-items="Model.StatusOptions" onchange="this.form.submit()">
+            <option value="">All Statuses</option>
+        </select>
+    </div>
+    @if (Model.IsManager)
+    {
+        <div class="col-auto">
+            <select name="propertyId" class="form-select" asp-items="Model.PropertyOptions" onchange="this.form.submit()">
+                <option value="">All Properties</option>
+            </select>
+        </div>
+    }
+</form>
+
+<table class="table table-hover align-middle">
+    <thead>
+    <tr>
+        <th>Property / Unit</th>
+        @if (Model.IsManager) { <th>Applicant</th> }
+        <th>Status</th>
+        <th>Updated</th>
+        <th></th>
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var item in Model.Items)
+    {
+        <tr>
+            <td>@item.PropertyName - @item.UnitNumber</td>
+            @if (Model.IsManager) { <td>@item.ApplicantName</td> }
+            <td>@await Component.InvokeAsync("StatusBadge", item.Status)</td>
+            <td>@item.UpdatedAt.ToLocalTime().ToString("g")</td>
+            <td><a class="btn btn-sm btn-outline-primary" asp-controller="Applications" asp-action="Details" asp-route-id="@item.Id">View</a></td>
+        </tr>
+    }
+    @if (!Model.Items.Any())
+    {
+        <tr><td colspan="5" class="text-muted">No applications found.</td></tr>
+    }
+    </tbody>
+</table>

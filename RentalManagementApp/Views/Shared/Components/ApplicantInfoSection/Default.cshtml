@@ -1,0 +1,30 @@
+@model RentalManagementApp.ViewModels.Applications.ApplicationWizardViewModel
+
+<h5 class="mb-3">Applicant Information</h5>
+<div class="row g-3">
+    <div class="col-md-6">
+        <label asp-for="ApplicantInfo.FirstName" class="form-label"></label>
+        <input asp-for="ApplicantInfo.FirstName" class="form-control" disabled="@Model.IsReadOnly" />
+        <span asp-validation-for="ApplicantInfo.FirstName" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="ApplicantInfo.LastName" class="form-label"></label>
+        <input asp-for="ApplicantInfo.LastName" class="form-control" disabled="@Model.IsReadOnly" />
+        <span asp-validation-for="ApplicantInfo.LastName" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="ApplicantInfo.Phone" class="form-label"></label>
+        <input asp-for="ApplicantInfo.Phone" class="form-control" disabled="@Model.IsReadOnly" />
+        <span asp-validation-for="ApplicantInfo.Phone" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="ApplicantInfo.Email" class="form-label"></label>
+        <input asp-for="ApplicantInfo.Email" class="form-control" disabled="@Model.IsReadOnly" />
+        <span asp-validation-for="ApplicantInfo.Email" class="text-danger"></span>
+    </div>
+    <div class="col-12">
+        <label asp-for="ApplicantInfo.CurrentAddress" class="form-label"></label>
+        <textarea asp-for="ApplicantInfo.CurrentAddress" class="form-control" rows="2" disabled="@Model.IsReadOnly"></textarea>
+        <span asp-validation-for="ApplicantInfo.CurrentAddress" class="text-danger"></span>
+    </div>
+</div>

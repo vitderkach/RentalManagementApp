@@ -1,0 +1,62 @@
+@model RentalManagementApp.ViewModels.Applications.ApplicationWizardViewModel
+
+<h5 class="mb-3">Residence History</h5>
+
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<div id="residence-list">
+    <table class="table table-sm align-middle">
+        <thead>
+        <tr>
+            <th>Address</th>
+            <th>Landlord</th>
+            <th>Landlord Phone</th>
+            <th>Move In</th>
+            <th>Move Out</th>
+            @if (!Model.IsReadOnly)
+            {
+                <th></th>
+            }
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var residence in Model.Residences)
+        {
+            <tr>
+                <td>@residence.Address</td>
+                <td>@residence.LandlordName</td>
+                <td>@residence.LandlordPhone</td>
+                <td>@residence.MoveInDate.ToString("MM/dd/yyyy")</td>
+                <td>@(residence.MoveOutDate?.ToString("MM/dd/yyyy") ?? "Present")</td>
+                @if (!Model.IsReadOnly)
+                {
+                    <td class="text-end">
+                        <button type="button" class="btn btn-sm btn-outline-secondary open-residence-modal"
+                                data-application-id="@Model.ApplicationId" data-residence-id="@residence.Id">Edit</button>
+                        <form method="post" asp-controller="Applications" asp-action="DeleteResidence" class="d-inline"
+                              onsubmit="return confirm('Remove this residence entry?');">
+                            <input type="hidden" name="applicationId" value="@Model.ApplicationId" />
+                            <input type="hidden" name="residenceId" value="@residence.Id" />
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                        </form>
+                    </td>
+                }
+            </tr>
+        }
+        @if (!Model.Residences.Any())
+        {
+            <tr><td colspan="6" class="text-muted">No prior residences added yet.</td></tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+@if (!Model.IsReadOnly)
+{
+    <button type="button" class="btn btn-outline-primary btn-sm open-residence-modal"
+            data-application-id="@Model.ApplicationId">+ Add Residence</button>
+}

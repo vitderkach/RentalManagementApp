@@ -1,0 +1,29 @@
+@model RentalManagementApp.ViewModels.Applications.ReviewFormViewModel
+@using RentalManagementApp.Services.Interfaces
+
+<div class="modal-header">
+    <h5 class="modal-title">Review Application</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+<form method="post" asp-controller="Applications" asp-action="Review" class="ajax-modal-form">
+    <div class="modal-body">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <input type="hidden" asp-for="ApplicationId" />
+
+        <div class="mb-3">
+            <label class="form-label">Outcome</label>
+            <select asp-for="Outcome" class="form-select" asp-items="Html.GetEnumSelectList<ReviewOutcome>()"></select>
+            <span asp-validation-for="Outcome" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Comment" class="form-label"></label>
+            <textarea asp-for="Comment" class="form-control" rows="3" placeholder="Required for Return or Deny"></textarea>
+            <span asp-validation-for="Comment" class="text-danger"></span>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Review</button>
+    </div>
+    @Html.AntiForgeryToken()
+</form>

@@ -1,0 +1,45 @@
+@model List<RentalManagementApp.ViewModels.Properties.AvailableUnitViewModel>
+@{
+    ViewData["Title"] = "Available Units";
+}
+
+<h2>Available Units</h2>
+
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<div class="row g-3">
+    @foreach (var unit in Model)
+    {
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">@unit.PropertyName - Unit @unit.UnitNumber</h5>
+                    <p class="card-text text-muted mb-1">@unit.Address</p>
+                    <p class="card-text mb-1">@unit.UnitTypeName &middot; @unit.Bedrooms bd</p>
+                    <p class="card-text fw-bold">@unit.MonthlyRent.ToString("C") / month</p>
+                </div>
+                <div class="card-footer">
+                    @if (unit.HasOpenApplicationForCurrentUser)
+                    {
+                        <button class="btn btn-outline-secondary w-100" disabled>Application in progress</button>
+                    }
+                    else
+                    {
+                        <form method="post" asp-controller="Applications" asp-action="Start">
+                            <input type="hidden" name="unitId" value="@unit.UnitId" />
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-primary w-100">Apply</button>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+    @if (!Model.Any())
+    {
+        <p class="text-muted">No units are currently available.</p>
+    }
+</div>
