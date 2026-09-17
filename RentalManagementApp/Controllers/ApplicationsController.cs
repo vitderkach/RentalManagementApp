@@ -5,8 +5,10 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using RentalManagementApp.Data;
 using RentalManagementApp.Data.Entities;
+using RentalManagementApp.Data.Enums;
 using RentalManagementApp.Services.Interfaces;
 using RentalManagementApp.ViewModels.Applications;
+using RentalManagementApp.ViewModels.Applications.Enums;
 
 namespace RentalManagementApp.Controllers;
 
@@ -25,8 +27,6 @@ public class ApplicationsController : Controller
     }
 
     private bool IsManager => User.IsInRole(Roles.PropertyManager);
-
-    // ----- List -----
 
     public async Task<IActionResult> Index(ApplicationStatus? status, int? propertyId)
     {
@@ -83,8 +83,6 @@ public class ApplicationsController : Controller
         return View(vm);
     }
 
-    // ----- Start / withdraw -----
-
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = "RequireApplicant")]
@@ -114,8 +112,6 @@ public class ApplicationsController : Controller
         }
         return RedirectToAction(nameof(Details), new { id });
     }
-
-    // ----- Details (with status history + review entry point) -----
 
     public async Task<IActionResult> Details(int id)
     {
@@ -167,8 +163,6 @@ public class ApplicationsController : Controller
         MoveOutDate = r.MoveOutDate
     };
 
-    // ----- Wizard -----
-
     [Authorize(Policy = "RequireApplicant")]
     public async Task<IActionResult> Wizard(int id, WizardSection? section = null)
     {
@@ -213,13 +207,7 @@ public class ApplicationsController : Controller
             Residences = application.Residences.Select(MapResidence).ToList()
         };
     }
-
-    /// <summary>
-    /// Single form/action for the two-section wizard. The clicked button ("continue" or "back")
-    /// and the currently-displayed section determine the behavior: Continue validates and
-    /// persists only the active section before advancing; Back simply moves to the previous
-    /// section without saving.
-    /// </summary>
+    
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = "RequireApplicant")]
@@ -297,8 +285,6 @@ public class ApplicationsController : Controller
         return RedirectToAction(nameof(Details), new { id = applicationId });
     }
 
-    // ----- Residence modal (add/edit/remove) -----
-
     [Authorize(Policy = "RequireApplicant")]
     public async Task<IActionResult> ResidenceModal(int applicationId, int? id)
     {
@@ -308,7 +294,7 @@ public class ApplicationsController : Controller
         if (application is null) return NotFound();
 
         var model = new ResidenceFormViewModel { ApplicationId = applicationId };
-        if (id is int residenceId)
+        if (id is { } residenceId)
         {
             var residence = application.Residences.FirstOrDefault(r => r.Id == residenceId);
             if (residence is null) return NotFound();
@@ -362,8 +348,6 @@ public class ApplicationsController : Controller
         }
         return Json(new { success = true });
     }
-
-    // ----- Review modal (property manager) -----
 
     [Authorize(Policy = "RequirePropertyManager")]
     public async Task<IActionResult> ReviewModal(int id)

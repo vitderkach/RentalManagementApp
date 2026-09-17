@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using RentalManagementApp.Data;
 using RentalManagementApp.Data.Entities;
+using RentalManagementApp.Data.Enums;
 using RentalManagementApp.Services.Interfaces;
 
 namespace RentalManagementApp.Services;
@@ -9,15 +10,18 @@ public class ApplicationWorkflowService : IApplicationWorkflowService
 {
     private readonly ApplicationDbContext _db;
     private readonly IUnitAvailabilityService _availability;
+    private readonly ILeaseFactory _leaseFactory;
     private readonly TimeProvider _timeProvider;
 
     public ApplicationWorkflowService(
         ApplicationDbContext db,
         IUnitAvailabilityService availability,
+        ILeaseFactory leaseFactory,
         TimeProvider? timeProvider = null)
     {
         _db = db;
         _availability = availability;
+        _leaseFactory = leaseFactory;
         _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
@@ -284,7 +288,7 @@ public class ApplicationWorkflowService : IApplicationWorkflowService
                 }
 
                 application.Status = ApplicationStatus.Approved;
-                var lease = _availability.CreateLeaseForApproval(application, Today);
+                var lease = _leaseFactory.CreateLeaseForApproval(application, Today);
                 _db.Leases.Add(lease);
                 break;
             case ReviewOutcome.Return:

@@ -36,13 +36,8 @@
                     <td class="text-end">
                         <button type="button" class="btn btn-sm btn-outline-secondary open-residence-modal"
                                 data-application-id="@Model.ApplicationId" data-residence-id="@residence.Id">Edit</button>
-                        <form method="post" asp-controller="Applications" asp-action="DeleteResidence" class="d-inline"
-                              onsubmit="return confirm('Remove this residence entry?');">
-                            <input type="hidden" name="applicationId" value="@Model.ApplicationId" />
-                            <input type="hidden" name="residenceId" value="@residence.Id" />
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
-                        </form>
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-residence"
+                                data-application-id="@Model.ApplicationId" data-residence-id="@residence.Id">Remove</button>
                     </td>
                 }
             </tr>

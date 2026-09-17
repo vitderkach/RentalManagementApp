@@ -22,10 +22,6 @@ public record ApplicantInfoInput(
     string Email,
     string CurrentAddress);
 
-/// <summary>
-/// Orchestrates the rental application lifecycle: creation, section saves, submission,
-/// withdrawal, and property-manager review (approve/return/deny), including lease issuance.
-/// </summary>
 public interface IApplicationWorkflowService
 {
     Task<ServiceResult<int>> StartApplicationAsync(int unitId, string applicantId);

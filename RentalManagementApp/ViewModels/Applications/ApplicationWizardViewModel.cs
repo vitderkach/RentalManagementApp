@@ -1,19 +1,10 @@
 using System.ComponentModel.DataAnnotations;
 using RentalManagementApp.Data.Entities;
+using RentalManagementApp.Data.Enums;
+using RentalManagementApp.ViewModels.Applications.Enums;
 
 namespace RentalManagementApp.ViewModels.Applications;
 
-public enum WizardSection
-{
-    ApplicantInfo = 0,
-    ResidenceHistory = 1,
-    Summary = 2
-}
-
-/// <summary>
-/// The single view model that drives the whole application wizard page. Each section is
-/// rendered by its own view component/partial based on <see cref="CurrentSection"/>.
-/// </summary>
 public class ApplicationWizardViewModel
 {
     public int ApplicationId { get; set; }

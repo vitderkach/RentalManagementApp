@@ -46,14 +46,17 @@
 
 <div class="d-flex gap-2">
     <form method="post" asp-controller="Applications" asp-action="WizardStep">
+        @Html.AntiForgeryToken()
         <input type="hidden" name="applicationId" value="@Model.ApplicationId" />
-        <input type="hidden" name="currentSection" value="@RentalManagementApp.ViewModels.Applications.WizardSection.Summary" />
+        <input type="hidden" name="currentSection" value="@RentalManagementApp.ViewModels.Applications.Enums.WizardSection.Summary" />
+        
         <button type="submit" name="action" value="back" formnovalidate class="btn btn-outline-secondary">Back</button>
     </form>
 
     @if (Model.CanSubmit)
     {
         <form method="post" asp-controller="Applications" asp-action="Submit">
+            @Html.AntiForgeryToken()
             <input type="hidden" name="applicationId" value="@Model.ApplicationId" />
             <button type="submit" class="btn btn-success">Submit Application</button>
         </form>

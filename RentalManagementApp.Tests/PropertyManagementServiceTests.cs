@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RentalManagementApp.Data.Entities;
+using RentalManagementApp.Data.Enums;
 using RentalManagementApp.Services;
 using RentalManagementApp.Services.Interfaces;
 using Xunit;

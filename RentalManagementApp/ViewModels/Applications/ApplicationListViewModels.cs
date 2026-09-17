@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using RentalManagementApp.Data.Entities;
+using RentalManagementApp.Data.Enums;
 using RentalManagementApp.Services.Interfaces;
 
 namespace RentalManagementApp.ViewModels.Applications;

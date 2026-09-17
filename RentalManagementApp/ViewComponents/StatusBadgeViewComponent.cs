@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using RentalManagementApp.Data.Entities;
+using RentalManagementApp.Data.Enums;
 
 namespace RentalManagementApp.ViewComponents;
 
-/// <summary>Renders a colored Bootstrap badge for an application status. Reused across list/detail views.</summary>
 public class StatusBadgeViewComponent : ViewComponent
 {
     public IViewComponentResult Invoke(ApplicationStatus status)

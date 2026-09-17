@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using RentalManagementApp.Data.Entities;
+using RentalManagementApp.Data.Enums;
 
 namespace RentalManagementApp.Data.Configurations;
 

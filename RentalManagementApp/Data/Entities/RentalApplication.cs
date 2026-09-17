@@ -1,3 +1,5 @@
+using RentalManagementApp.Data.Enums;
+
 namespace RentalManagementApp.Data.Entities;
 
 /// <summary>

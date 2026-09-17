@@ -2,6 +2,7 @@ using Bogus;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RentalManagementApp.Data.Entities;
+using RentalManagementApp.Data.Enums;
 
 namespace RentalManagementApp.Data.Seed;
 

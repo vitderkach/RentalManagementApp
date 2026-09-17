@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using RentalManagementApp.Data.Entities;
+using RentalManagementApp.Data.Enums;
 
 namespace RentalManagementApp.Data;
 

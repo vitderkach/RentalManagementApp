@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RentalManagementApp.Data.Entities;
+using RentalManagementApp.Data.Enums;
 using RentalManagementApp.Services;
 using RentalManagementApp.Services.Interfaces;
 using Xunit;
@@ -9,7 +10,7 @@ namespace RentalManagementApp.Tests;
 public class ApplicationWorkflowServiceTests
 {
     private static ApplicationWorkflowService CreateSut(Data.ApplicationDbContext db) =>
-        new(db, new UnitAvailabilityService());
+        new(db, new UnitAvailabilityService(), new LeaseFactory());
 
     private static ApplicantInfoInput ValidApplicantInfo() =>
         new("Jane", "Doe", "555-0100", "jane@example.com", "123 Elm St");

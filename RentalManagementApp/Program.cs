@@ -8,7 +8,6 @@ using RentalManagementApp.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -39,23 +38,21 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IUnitAvailabilityService, UnitAvailabilityService>();
+builder.Services.AddScoped<ILeaseFactory, LeaseFactory>();
 builder.Services.AddScoped<IApplicationWorkflowService, ApplicationWorkflowService>();
 builder.Services.AddScoped<IPropertyManagementService, PropertyManagementService>();
 
 var app = builder.Build();
 
-// Apply migrations and seed idempotent data on every startup.
 if (!app.Environment.IsEnvironment("Testing"))
 {
     using var scope = app.Services.CreateScope();
     await DbSeeder.SeedAsync(scope.ServiceProvider);
 }
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 

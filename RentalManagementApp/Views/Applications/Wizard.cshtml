@@ -1,5 +1,5 @@
 @model RentalManagementApp.ViewModels.Applications.ApplicationWizardViewModel
-@using RentalManagementApp.ViewModels.Applications
+@using RentalManagementApp.ViewModels.Applications.Enums
 @{
     ViewData["Title"] = "Rental Application";
 }
@@ -25,6 +25,7 @@
 else
 {
     <form method="post" asp-controller="Applications" asp-action="WizardStep">
+        @Html.AntiForgeryToken()
         <input type="hidden" name="applicationId" value="@Model.ApplicationId" />
         <input type="hidden" name="currentSection" value="@Model.CurrentSection" />
 
@@ -68,6 +69,24 @@ else
                     document.getElementById('residenceModalBody').innerHTML = html;
                     new bootstrap.Modal(document.getElementById('residenceModal')).show();
                 });
+        });
+
+        document.addEventListener('click', function (e) {
+            var btn = e.target.closest('.remove-residence');
+            if (!btn) return;
+            if (!confirm('Remove this residence entry?')) return;
+            var appId = btn.dataset.applicationId;
+            var residenceId = btn.dataset.residenceId;
+            var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            var body = new URLSearchParams();
+            body.set('applicationId', appId);
+            body.set('residenceId', residenceId);
+            body.set('__RequestVerificationToken', token);
+            fetch('/Applications/DeleteResidence', {
+                method: 'POST',
+                body: body
+            })
+                .then(function (r) { if (r.ok) window.location.reload(); });
         });
     </script>
 }
