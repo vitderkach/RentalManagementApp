@@ -5,7 +5,7 @@ accepts rental applications for its apartments.
 
 ## Demo
 
-[Watch the screen recording](<Screen Recording 2026-09-18 at 15.25.41.mov>)
+[Watch the screen recording](https://drive.google.com/file/d/1KGduGQiFH1mAAQd_6Kw9iq1GbvU5aGWn/view?usp=sharing)
 
 ## Stack
 
