@@ -2,9 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
-using RentalManagementApp.Data;
 using RentalManagementApp.Data.Entities;
 using RentalManagementApp.Data.Enums;
 using RentalManagementApp.Services.Contracts;
@@ -18,18 +16,18 @@ namespace RentalManagementApp.Controllers;
 public class ApplicationsController : Controller
 {
     private const string PendingResidencesSessionKeyPrefix = "PendingResidences-";
-    private readonly ApplicationDbContext _db;
+    private readonly IApplicationRepository _applicationRepository;
     private readonly IApplicantApplicationService _applicantApplications;
     private readonly IApplicationReviewService _applicationReviews;
     private readonly UserManager<ApplicationUser> _userManager;
 
     public ApplicationsController(
-        ApplicationDbContext db,
+        IApplicationRepository applicationRepository,
         IApplicantApplicationService applicantApplications,
         IApplicationReviewService applicationReviews,
         UserManager<ApplicationUser> userManager)
     {
-        _db = db;
+        _applicationRepository = applicationRepository;
         _applicantApplications = applicantApplications;
         _applicationReviews = applicationReviews;
         _userManager = userManager;
@@ -40,32 +38,8 @@ public class ApplicationsController : Controller
     public async Task<IActionResult> Index(ApplicationStatus? status, int? propertyId)
     {
         var userId = _userManager.GetUserId(User)!;
-        var query = _db.RentalApplications
-            .Include(a => a.Unit).ThenInclude(u => u!.Property)
-            .Include(a => a.Applicant)
-            .AsQueryable();
-
-        if (IsManager)
-        {
-            query = query.Where(a => a.Unit!.Property!.PropertyManagerId == userId);
-        }
-        else
-        {
-            query = query.Where(a => a.ApplicantId == userId);
-        }
-
-        if (status is not null)
-        {
-            query = query.Where(a => a.Status == status);
-        }
-
-        if (propertyId is not null)
-        {
-            query = query.Where(a => a.Unit!.PropertyId == propertyId);
-        }
-
-        var items = await query
-            .OrderByDescending(a => a.UpdatedAt)
+        var applications = await _applicationRepository.GetApplicationsAsync(userId, IsManager, status, propertyId);
+        var items = applications
             .Select(a => new ApplicationListItemViewModel
             {
                 Id = a.Id,
@@ -75,13 +49,12 @@ public class ApplicationsController : Controller
                 Status = a.Status,
                 UpdatedAt = a.UpdatedAt
             })
-            .ToListAsync();
+            .ToList();
 
-        var propertyOptions = await _db.Properties
-            .Where(p => p.PropertyManagerId == userId)
-            .OrderBy(p => p.Name)
+        var properties = await _applicationRepository.GetManagedPropertiesAsync(userId);
+        var propertyOptions = properties
             .Select(p => new SelectListItem(p.Name, p.Id.ToString(), p.Id == propertyId))
-            .ToListAsync();
+            .ToList();
 
         var vm = new ApplicationListViewModel
         {
@@ -130,11 +103,7 @@ public class ApplicationsController : Controller
     public async Task<IActionResult> Details(int id)
     {
         var userId = _userManager.GetUserId(User)!;
-        var application = await _db.RentalApplications
-            .Include(a => a.Unit).ThenInclude(u => u!.Property)
-            .Include(a => a.Residences)
-            .Include(a => a.StatusHistory).ThenInclude(h => h.ChangedByUser)
-            .FirstOrDefaultAsync(a => a.Id == id);
+        var application = await _applicationRepository.GetApplicationDetailsAsync(id);
 
         if (application is null) return NotFound();
         if (IsManager && application.Unit!.Property!.PropertyManagerId != userId) return Forbid();
@@ -202,12 +171,9 @@ public class ApplicationsController : Controller
     private async Task<ApplicationWizardViewModel?> BuildWizardViewModelAsync(int id, WizardSection? forcedSection)
     {
         var userId = _userManager.GetUserId(User)!;
-        var application = await _db.RentalApplications
-            .Include(a => a.Unit).ThenInclude(u => u!.Property)
-            .Include(a => a.Residences)
-            .FirstOrDefaultAsync(a => a.Id == id);
+        var application = await _applicationRepository.GetApplicantApplicationForWizardAsync(id, userId);
 
-        if (application is null || application.ApplicantId != userId) return null;
+        if (application is null) return null;
 
         var isReadOnly = !application.Status.IsEditable();
         var defaultSection = isReadOnly
@@ -352,8 +318,8 @@ public class ApplicationsController : Controller
     public async Task<IActionResult> ResidenceModal(int applicationId, int? id, int? pendingIndex)
     {
         var userId = _userManager.GetUserId(User)!;
-        var application = await _db.RentalApplications.Include(a => a.Residences)
-            .FirstOrDefaultAsync(a => a.Id == applicationId && a.ApplicantId == userId);
+        var application = await _applicationRepository
+            .GetApplicantApplicationWithResidencesAsync(applicationId, userId);
         if (application is null) return NotFound();
 
         var model = new ResidenceFormViewModel
@@ -399,8 +365,8 @@ public class ApplicationsController : Controller
         var userId = _userManager.GetUserId(User)!;
         if (model.Id is null)
         {
-            var application = await _db.RentalApplications
-                .FirstOrDefaultAsync(a => a.Id == model.ApplicationId && a.ApplicantId == userId);
+            var application = await _applicationRepository
+                .GetApplicantApplicationAsync(model.ApplicationId, userId);
             if (application is null || !application.Status.IsEditable())
             {
                 ModelState.AddModelError(string.Empty, "This application can no longer be edited.");
@@ -448,8 +414,8 @@ public class ApplicationsController : Controller
         var userId = _userManager.GetUserId(User)!;
         if (pendingIndex is { } index)
         {
-            var application = await _db.RentalApplications
-                .FirstOrDefaultAsync(a => a.Id == applicationId && a.ApplicantId == userId);
+            var application = await _applicationRepository
+                .GetApplicantApplicationAsync(applicationId, userId);
             if (application is null || !application.Status.IsEditable()) return BadRequest("This application can no longer be edited.");
 
             var pendingResidences = GetPendingResidences(applicationId);
@@ -474,9 +440,7 @@ public class ApplicationsController : Controller
     public async Task<IActionResult> ReviewModal(int id)
     {
         var userId = _userManager.GetUserId(User)!;
-        var application = await _db.RentalApplications
-            .Include(a => a.Unit).ThenInclude(u => u!.Property)
-            .FirstOrDefaultAsync(a => a.Id == id);
+        var application = await _applicationRepository.GetApplicationForReviewAsync(id);
         if (application is null || application.Status != ApplicationStatus.Submitted) return NotFound();
         if (application.Unit!.Property!.PropertyManagerId != userId) return Forbid();
 

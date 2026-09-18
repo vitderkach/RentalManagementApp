@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RentalManagementApp.Data;
+using RentalManagementApp.Data.Repositories;
 using RentalManagementApp.Data.Entities;
 using RentalManagementApp.Data.Seed;
 using RentalManagementApp.Services;
@@ -42,6 +43,8 @@ builder.Services.AddScoped<IUnitAvailabilityService, UnitAvailabilityService>();
 builder.Services.AddScoped<IApplicantApplicationService, ApplicantApplicationService>();
 builder.Services.AddScoped<IApplicationReviewService, ApplicationReviewService>();
 builder.Services.AddScoped<IPropertyManagementService, PropertyManagementService>();
+builder.Services.AddScoped<IPropertyRepository, PropertyRepository>();
+builder.Services.AddScoped<IApplicationRepository, ApplicationRepository>();
 
 var app = builder.Build();
 

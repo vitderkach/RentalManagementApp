@@ -2,8 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using RentalManagementApp.Data;
 using RentalManagementApp.Data.Entities;
 using RentalManagementApp.Services;
 using RentalManagementApp.Services.Interfaces;
@@ -14,14 +12,16 @@ namespace RentalManagementApp.Controllers;
 [Authorize]
 public class PropertiesController : Controller
 {
-    private readonly ApplicationDbContext _db;
+    private readonly IPropertyRepository _propertyRepository;
     private readonly IPropertyManagementService _propertyService;
     private readonly UserManager<ApplicationUser> _userManager;
 
     public PropertiesController(
-        ApplicationDbContext db, IPropertyManagementService propertyService, UserManager<ApplicationUser> userManager)
+        IPropertyRepository propertyRepository,
+        IPropertyManagementService propertyService,
+        UserManager<ApplicationUser> userManager)
     {
-        _db = db;
+        _propertyRepository = propertyRepository;
         _propertyService = propertyService;
         _userManager = userManager;
     }
@@ -32,13 +32,7 @@ public class PropertiesController : Controller
     public async Task<IActionResult> Index()
     {
         var managerId = _userManager.GetUserId(User)!;
-        var properties = await _db.Properties
-            .Where(p => p.PropertyManagerId == managerId)
-            .Include(p => p.Units).ThenInclude(u => u.UnitType)
-            .Include(p => p.Units).ThenInclude(u => u.Leases)
-            .Include(p => p.Units).ThenInclude(u => u.RentalApplications)
-            .OrderBy(p => p.Name)
-            .ToListAsync();
+        var properties = await _propertyRepository.GetManagedPropertiesWithUnitsAsync(managerId);
 
         var vm = new PropertiesIndexViewModel
         {
@@ -74,12 +68,7 @@ public class PropertiesController : Controller
     public async Task<IActionResult> Browse()
     {
         var userId = _userManager.GetUserId(User)!;
-        var units = await _db.Units
-            .Include(u => u.Property)
-            .Include(u => u.UnitType)
-            .Include(u => u.Leases)
-            .Include(u => u.RentalApplications)
-            .ToListAsync();
+        var units = await _propertyRepository.GetAvailableUnitsAsync();
 
         var available = units
             .Where(u => u.Leases.All(l => !l.CoversDate(Today)))
@@ -110,7 +99,7 @@ public class PropertiesController : Controller
         }
 
         var managerId = _userManager.GetUserId(User)!;
-        var property = await _db.Properties.FirstOrDefaultAsync(p => p.Id == id && p.PropertyManagerId == managerId);
+        var property = await _propertyRepository.GetManagedPropertyAsync(id.Value, managerId);
         if (property is null) return NotFound();
 
         return PartialView("_PropertyForm", new PropertyFormViewModel
@@ -175,14 +164,14 @@ public class PropertiesController : Controller
     public async Task<IActionResult> UnitModal(int propertyId, int? id)
     {
         var managerId = _userManager.GetUserId(User)!;
-        var property = await _db.Properties.FirstOrDefaultAsync(p => p.Id == propertyId && p.PropertyManagerId == managerId);
+        var property = await _propertyRepository.GetManagedPropertyAsync(propertyId, managerId);
         if (property is null) return NotFound();
 
         var model = new UnitFormViewModel { PropertyId = propertyId };
 
         if (id is int unitId)
         {
-            var unit = await _db.Units.FirstOrDefaultAsync(u => u.Id == unitId && u.PropertyId == propertyId);
+            var unit = await _propertyRepository.GetUnitForPropertyAsync(unitId, propertyId);
             if (unit is null) return NotFound();
 
             model.Id = unit.Id;
@@ -198,10 +187,7 @@ public class PropertiesController : Controller
 
     private async Task<List<SelectListItem>> GetUnitTypeOptionsAsync(int currentlySelectedId)
     {
-        var types = await _db.UnitTypes
-            .Where(t => t.IsActive || t.Id == currentlySelectedId)
-            .OrderBy(t => t.Name)
-            .ToListAsync();
+        var types = await _propertyRepository.GetSelectableUnitTypesAsync(currentlySelectedId);
 
         return types.Select(t => new SelectListItem(
             t.IsActive ? t.Name : $"{t.Name} (inactive)", t.Id.ToString())).ToList();
