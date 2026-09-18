@@ -70,5 +70,3 @@ app.MapControllerRoute(
     .WithStaticAssets();
 
 app.Run();
-
-public partial class Program;
