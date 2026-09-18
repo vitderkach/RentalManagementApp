@@ -62,7 +62,8 @@ else
             if (!btn) return;
             var appId = btn.dataset.applicationId;
             var residenceId = btn.dataset.residenceId || '';
-            fetch(`/Applications/ResidenceModal?applicationId=${appId}&id=${residenceId}`)
+            var pendingIndex = btn.dataset.pendingIndex || '';
+            fetch(`/Applications/ResidenceModal?applicationId=${appId}&id=${residenceId}&pendingIndex=${pendingIndex}`)
                 .then(r => r.text())
                 .then(html => {
                     var modalBody = document.getElementById('residenceModalBody');
@@ -78,10 +79,12 @@ else
             if (!confirm('Remove this residence entry?')) return;
             var appId = btn.dataset.applicationId;
             var residenceId = btn.dataset.residenceId;
+            var pendingIndex = btn.dataset.pendingIndex || '';
             var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
             var body = new URLSearchParams();
             body.set('applicationId', appId);
             body.set('residenceId', residenceId);
+            body.set('pendingIndex', pendingIndex);
             body.set('__RequestVerificationToken', token);
             fetch('/Applications/DeleteResidence', {
                 method: 'POST',

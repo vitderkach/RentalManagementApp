@@ -48,6 +48,8 @@ public class ApplicantInfoInputModel
 public class ResidenceViewModel
 {
     public int Id { get; set; }
+    public bool IsPending { get; set; }
+    public int? PendingIndex { get; set; }
     public string Address { get; set; } = string.Empty;
     public string LandlordName { get; set; } = string.Empty;
     public string LandlordPhone { get; set; } = string.Empty;
@@ -58,6 +60,7 @@ public class ResidenceViewModel
 public class ResidenceFormViewModel : IValidatableObject
 {
     public int? Id { get; set; }
+    public int? PendingIndex { get; set; }
 
     [Required]
     public int ApplicationId { get; set; }

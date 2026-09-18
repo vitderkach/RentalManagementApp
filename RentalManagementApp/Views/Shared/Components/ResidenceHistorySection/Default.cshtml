@@ -35,9 +35,11 @@
                 {
                     <td class="text-end">
                         <button type="button" class="btn btn-sm btn-outline-secondary open-residence-modal"
-                                data-application-id="@Model.ApplicationId" data-residence-id="@residence.Id">Edit</button>
+                                data-application-id="@Model.ApplicationId" data-residence-id="@residence.Id"
+                                data-pending-index="@residence.PendingIndex">Edit</button>
                         <button type="button" class="btn btn-sm btn-outline-danger remove-residence"
-                                data-application-id="@Model.ApplicationId" data-residence-id="@residence.Id">Remove</button>
+                                data-application-id="@Model.ApplicationId" data-residence-id="@residence.Id"
+                                data-pending-index="@residence.PendingIndex">Remove</button>
                     </td>
                 }
             </tr>

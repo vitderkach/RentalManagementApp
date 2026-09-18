@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using RentalManagementApp.Data;
 using RentalManagementApp.Data.Entities;
 using RentalManagementApp.Data.Enums;
@@ -16,6 +17,7 @@ namespace RentalManagementApp.Controllers;
 [Authorize]
 public class ApplicationsController : Controller
 {
+    private const string PendingResidencesSessionKeyPrefix = "PendingResidences-";
     private readonly ApplicationDbContext _db;
     private readonly IApplicantApplicationService _applicantApplications;
     private readonly IApplicationReviewService _applicationReviews;
@@ -177,6 +179,18 @@ public class ApplicationsController : Controller
         MoveOutDate = r.MoveOutDate
     };
 
+    private string PendingResidencesSessionKey(int applicationId) =>
+        $"{PendingResidencesSessionKeyPrefix}{applicationId}";
+
+    private List<ResidenceFormViewModel> GetPendingResidences(int applicationId) =>
+        JsonSerializer.Deserialize<List<ResidenceFormViewModel>>(
+            HttpContext.Session.GetString(PendingResidencesSessionKey(applicationId)) ?? "[]") ?? [];
+
+    private void SetPendingResidences(int applicationId, List<ResidenceFormViewModel> residences) =>
+        HttpContext.Session.SetString(
+            PendingResidencesSessionKey(applicationId),
+            JsonSerializer.Serialize(residences));
+
     [Authorize(Policy = "RequireApplicant")]
     public async Task<IActionResult> Wizard(int id, WizardSection? section = null)
     {
@@ -220,7 +234,18 @@ public class ApplicationsController : Controller
                 DesiredLeaseStartDate = application.DesiredLeaseStartDate
                     ?? DateOnly.FromDateTime(DateTime.UtcNow)
             },
-            Residences = application.Residences.Select(MapResidence).ToList()
+            Residences = application.Residences.Select(MapResidence)
+                .Concat(GetPendingResidences(id).Select((r, index) => new ResidenceViewModel
+                {
+                    IsPending = true,
+                    PendingIndex = index,
+                    Address = r.Address,
+                    LandlordName = r.LandlordName,
+                    LandlordPhone = r.LandlordPhone,
+                    MoveInDate = r.MoveInDate,
+                    MoveOutDate = r.MoveOutDate
+                }))
+                .ToList()
         };
     }
     
@@ -233,6 +258,11 @@ public class ApplicationsController : Controller
 
         if (action == "back")
         {
+            if (currentSection == WizardSection.ResidenceHistory)
+            {
+                HttpContext.Session.Remove(PendingResidencesSessionKey(applicationId));
+            }
+
             var previous = currentSection switch
             {
                 WizardSection.ResidenceHistory => WizardSection.ApplicantInfo,
@@ -272,6 +302,26 @@ public class ApplicationsController : Controller
 
         if (currentSection == WizardSection.ResidenceHistory)
         {
+            var pendingResidences = GetPendingResidences(applicationId);
+            foreach (var residence in pendingResidences)
+            {
+                var saveResidenceResult = await _applicantApplications.AddOrUpdateResidenceAsync(
+                    applicationId,
+                    userId,
+                    new ResidenceInput(
+                        null,
+                        residence.Address,
+                        residence.LandlordName,
+                        residence.LandlordPhone,
+                        residence.MoveInDate,
+                        residence.MoveOutDate));
+                if (!saveResidenceResult.Succeeded)
+                {
+                    TempData["Error"] = saveResidenceResult.Error;
+                    return RedirectToAction(nameof(Wizard), new { id = applicationId, section = WizardSection.ResidenceHistory });
+                }
+            }
+
             var result = await _applicantApplications.SaveResidenceHistoryAsync(applicationId, userId);
             if (!result.Succeeded)
             {
@@ -279,6 +329,7 @@ public class ApplicationsController : Controller
                 return RedirectToAction(nameof(Wizard), new { id = applicationId, section = WizardSection.ResidenceHistory });
             }
 
+            HttpContext.Session.Remove(PendingResidencesSessionKey(applicationId));
             return RedirectToAction(nameof(Wizard), new { id = applicationId, section = WizardSection.Summary });
         }
 
@@ -298,7 +349,7 @@ public class ApplicationsController : Controller
     }
 
     [Authorize(Policy = "RequireApplicant")]
-    public async Task<IActionResult> ResidenceModal(int applicationId, int? id)
+    public async Task<IActionResult> ResidenceModal(int applicationId, int? id, int? pendingIndex)
     {
         var userId = _userManager.GetUserId(User)!;
         var application = await _db.RentalApplications.Include(a => a.Residences)
@@ -310,7 +361,15 @@ public class ApplicationsController : Controller
             ApplicationId = applicationId,
             MoveInDate = DateOnly.FromDateTime(DateTime.UtcNow)
         };
-        if (id is { } residenceId)
+        if (pendingIndex is { } index)
+        {
+            var pendingResidences = GetPendingResidences(applicationId);
+            if (index < 0 || index >= pendingResidences.Count) return NotFound();
+
+            model = pendingResidences[index];
+            model.PendingIndex = index;
+        }
+        else if (id is { } residenceId)
         {
             var residence = application.Residences.FirstOrDefault(r => r.Id == residenceId);
             if (residence is null) return NotFound();
@@ -338,6 +397,36 @@ public class ApplicationsController : Controller
         }
 
         var userId = _userManager.GetUserId(User)!;
+        if (model.Id is null)
+        {
+            var application = await _db.RentalApplications
+                .FirstOrDefaultAsync(a => a.Id == model.ApplicationId && a.ApplicantId == userId);
+            if (application is null || !application.Status.IsEditable())
+            {
+                ModelState.AddModelError(string.Empty, "This application can no longer be edited.");
+                Response.StatusCode = 400;
+                return PartialView("_ResidenceForm", model);
+            }
+
+            var pendingResidences = GetPendingResidences(model.ApplicationId);
+            if (model.PendingIndex is { } index)
+            {
+                if (index < 0 || index >= pendingResidences.Count)
+                {
+                    return NotFound();
+                }
+
+                pendingResidences[index] = model;
+            }
+            else
+            {
+                pendingResidences.Add(model);
+            }
+
+            SetPendingResidences(model.ApplicationId, pendingResidences);
+            return Json(new { success = true });
+        }
+
         var result = await _applicantApplications.AddOrUpdateResidenceAsync(model.ApplicationId, userId,
             new ResidenceInput(model.Id, model.Address, model.LandlordName, model.LandlordPhone, model.MoveInDate, model.MoveOutDate));
 
@@ -354,10 +443,26 @@ public class ApplicationsController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = "RequireApplicant")]
-    public async Task<IActionResult> DeleteResidence(int applicationId, int residenceId)
+    public async Task<IActionResult> DeleteResidence(int applicationId, int? residenceId, int? pendingIndex)
     {
         var userId = _userManager.GetUserId(User)!;
-        var result = await _applicantApplications.RemoveResidenceAsync(applicationId, userId, residenceId);
+        if (pendingIndex is { } index)
+        {
+            var application = await _db.RentalApplications
+                .FirstOrDefaultAsync(a => a.Id == applicationId && a.ApplicantId == userId);
+            if (application is null || !application.Status.IsEditable()) return BadRequest("This application can no longer be edited.");
+
+            var pendingResidences = GetPendingResidences(applicationId);
+            if (index < 0 || index >= pendingResidences.Count) return NotFound();
+
+            pendingResidences.RemoveAt(index);
+            SetPendingResidences(applicationId, pendingResidences);
+            return Json(new { success = true });
+        }
+
+        if (residenceId is null) return BadRequest("Residence not found.");
+
+        var result = await _applicantApplications.RemoveResidenceAsync(applicationId, userId, residenceId.Value);
         if (!result.Succeeded)
         {
             return BadRequest(result.Error);
