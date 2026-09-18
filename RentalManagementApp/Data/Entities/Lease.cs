@@ -1,9 +1,5 @@
 namespace RentalManagementApp.Data.Entities;
 
-/// <summary>
-/// A twelve-month lease created automatically when a rental application is approved.
-/// A unit is unavailable while any lease's term (StartDate..EndDate) covers today.
-/// </summary>
 public class Lease
 {
     public int Id { get; set; }

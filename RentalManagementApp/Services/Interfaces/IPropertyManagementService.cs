@@ -1,5 +1,3 @@
-using RentalManagementApp.Data.Entities;
-
 namespace RentalManagementApp.Services.Interfaces;
 
 public record UnitInput(int? Id, string UnitNumber, int Bedrooms, decimal MonthlyRent, int UnitTypeId);

@@ -6,10 +6,6 @@ using RentalManagementApp.Data.Enums;
 
 namespace RentalManagementApp.Data.Seed;
 
-/// <summary>
-/// Idempotent startup seeder. Safe to run on every application start: it only creates records
-/// that do not already exist (matched by natural keys such as email, name, or unit number).
-/// </summary>
 public static class DbSeeder
 {
     public static async Task SeedAsync(IServiceProvider services)

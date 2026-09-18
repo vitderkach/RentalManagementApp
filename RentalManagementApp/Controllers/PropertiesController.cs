@@ -101,8 +101,6 @@ public class PropertiesController : Controller
         return View(available);
     }
 
-    // ----- Property modal -----
-
     [Authorize(Policy = "RequirePropertyManager")]
     public async Task<IActionResult> PropertyModal(int? id)
     {
@@ -172,8 +170,6 @@ public class PropertiesController : Controller
         }
         return Json(new { success = true });
     }
-
-    // ----- Unit modal -----
 
     [Authorize(Policy = "RequirePropertyManager")]
     public async Task<IActionResult> UnitModal(int propertyId, int? id)

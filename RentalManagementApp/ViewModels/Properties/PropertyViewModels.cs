@@ -88,14 +88,3 @@ public class AvailableUnitViewModel
     public string UnitTypeName { get; set; } = string.Empty;
     public bool HasOpenApplicationForCurrentUser { get; set; }
 }
-
-public class UnitTypeFormViewModel
-{
-    public int? Id { get; set; }
-
-    [Required, StringLength(100)]
-    public string Name { get; set; } = string.Empty;
-
-    [Display(Name = "Active")]
-    public bool IsActive { get; set; } = true;
-}

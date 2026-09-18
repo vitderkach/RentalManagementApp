@@ -8,10 +8,13 @@ using Xunit;
 
 namespace RentalManagementApp.Tests;
 
-public class ApplicationWorkflowServiceTests
+public class ApplicantApplicationServiceTests
 {
-    private static ApplicationWorkflowService CreateSut(Data.ApplicationDbContext db) =>
-        new(db, new UnitAvailabilityService(), new LeaseFactory());
+    private static ApplicantApplicationService CreateApplicantSut(Data.ApplicationDbContext db) =>
+        new(db, new UnitAvailabilityService());
+
+    private static ApplicationReviewService CreateReviewSut(Data.ApplicationDbContext db) =>
+        new(db, new UnitAvailabilityService(), TimeProvider.System);
 
     private static ApplicantInfoInput ValidApplicantInfo() =>
         new("Jane", "Doe", "555-0100", "jane@example.com", "123 Elm St", DateOnly.FromDateTime(DateTime.UtcNow).AddDays(30));
@@ -21,7 +24,7 @@ public class ApplicationWorkflowServiceTests
     {
         using var db = TestDbFactory.Create();
         var (unit, _) = TestDbFactory.SeedPropertyAndUnit(db);
-        var sut = CreateSut(db);
+        var sut = CreateApplicantSut(db);
 
         var result = await sut.StartApplicationAsync(unit.Id, "applicant-1");
 
@@ -41,7 +44,7 @@ public class ApplicationWorkflowServiceTests
         db.Leases.Add(new Lease { UnitId = unit.Id, StartDate = today.AddDays(-10), EndDate = today.AddDays(300), MonthlyRent = 1200m });
         await db.SaveChangesAsync();
 
-        var sut = CreateSut(db);
+        var sut = CreateApplicantSut(db);
         var result = await sut.StartApplicationAsync(unit.Id, "applicant-1");
 
         Assert.False(result.Succeeded);
@@ -56,7 +59,7 @@ public class ApplicationWorkflowServiceTests
         db.RentalApplications.Add(application);
         await db.SaveChangesAsync();
 
-        var sut = CreateSut(db);
+        var sut = CreateApplicantSut(db);
         var result = await sut.SaveApplicantInfoAsync(application.Id, "applicant-1", ValidApplicantInfo());
 
         Assert.False(result.Succeeded);
@@ -71,7 +74,7 @@ public class ApplicationWorkflowServiceTests
         db.RentalApplications.Add(application);
         await db.SaveChangesAsync();
 
-        var sut = CreateSut(db);
+        var sut = CreateApplicantSut(db);
         var result = await sut.SaveApplicantInfoAsync(application.Id, "someone-else", ValidApplicantInfo());
 
         Assert.False(result.Succeeded);
@@ -90,7 +93,7 @@ public class ApplicationWorkflowServiceTests
         db.RentalApplications.Add(application);
         await db.SaveChangesAsync();
 
-        var sut = CreateSut(db);
+        var sut = CreateApplicantSut(db);
         var result = await sut.SubmitAsync(application.Id, "applicant-1");
 
         Assert.False(result.Succeeded);
@@ -109,7 +112,7 @@ public class ApplicationWorkflowServiceTests
         db.RentalApplications.Add(application);
         await db.SaveChangesAsync();
 
-        var sut = CreateSut(db);
+        var sut = CreateApplicantSut(db);
         var result = await sut.SubmitAsync(application.Id, "applicant-1");
 
         Assert.True(result.Succeeded);
@@ -133,7 +136,7 @@ public class ApplicationWorkflowServiceTests
         db.Leases.Add(new Lease { UnitId = unit.Id, StartDate = today, EndDate = today.AddMonths(12), MonthlyRent = 1200m });
         await db.SaveChangesAsync();
 
-        var sut = CreateSut(db);
+        var sut = CreateApplicantSut(db);
         var result = await sut.SubmitAsync(application.Id, "applicant-1");
 
         Assert.False(result.Succeeded);
@@ -148,7 +151,7 @@ public class ApplicationWorkflowServiceTests
         db.RentalApplications.Add(application);
         await db.SaveChangesAsync();
 
-        var sut = CreateSut(db);
+        var sut = CreateApplicantSut(db);
         var result = await sut.WithdrawAsync(application.Id, "applicant-1");
 
         Assert.False(result.Succeeded);
@@ -163,7 +166,7 @@ public class ApplicationWorkflowServiceTests
         db.RentalApplications.Add(application);
         await db.SaveChangesAsync();
 
-        var sut = CreateSut(db);
+        var sut = CreateApplicantSut(db);
         var result = await sut.WithdrawAsync(application.Id, "applicant-1");
 
         Assert.True(result.Succeeded);
@@ -181,7 +184,7 @@ public class ApplicationWorkflowServiceTests
         db.RentalApplications.Add(application);
         await db.SaveChangesAsync();
 
-        var sut = CreateSut(db);
+        var sut = CreateReviewSut(db);
         var result = await sut.ReviewAsync(application.Id, "manager-1", outcome, comment: null);
 
         Assert.False(result.Succeeded);
@@ -196,7 +199,7 @@ public class ApplicationWorkflowServiceTests
         db.RentalApplications.Add(application);
         await db.SaveChangesAsync();
 
-        var sut = CreateSut(db);
+        var sut = CreateReviewSut(db);
         var result = await sut.ReviewAsync(application.Id, "manager-1", ApplicationReviewOutcome.Approve, null);
 
         Assert.True(result.Succeeded);
@@ -222,7 +225,7 @@ public class ApplicationWorkflowServiceTests
         db.RentalApplications.Add(application);
         await db.SaveChangesAsync();
 
-        var sut = CreateSut(db);
+        var sut = CreateReviewSut(db);
         var result = await sut.ReviewAsync(application.Id, "manager-1", ApplicationReviewOutcome.Approve, null);
 
         Assert.True(result.Succeeded);
@@ -245,7 +248,7 @@ public class ApplicationWorkflowServiceTests
         db.RentalApplications.Add(application);
         await db.SaveChangesAsync();
 
-        var sut = CreateSut(db);
+        var sut = CreateReviewSut(db);
         var result = await sut.ReviewAsync(application.Id, "manager-1", ApplicationReviewOutcome.Approve, null);
 
         Assert.True(result.Succeeded);
@@ -265,7 +268,7 @@ public class ApplicationWorkflowServiceTests
         db.RentalApplications.Add(application);
         await db.SaveChangesAsync();
 
-        var sut = CreateSut(db);
+        var sut = CreateReviewSut(db);
         var result = await sut.ReviewAsync(application.Id, "manager-1", ApplicationReviewOutcome.Approve, null);
 
         Assert.False(result.Succeeded);
@@ -281,7 +284,7 @@ public class ApplicationWorkflowServiceTests
         db.RentalApplications.Add(application);
         await db.SaveChangesAsync();
 
-        var sut = CreateSut(db);
+        var sut = CreateReviewSut(db);
         var result = await sut.ReviewAsync(application.Id, "manager-1", ApplicationReviewOutcome.Approve, null);
 
         Assert.False(result.Succeeded);
@@ -300,7 +303,7 @@ public class ApplicationWorkflowServiceTests
         db.RentalApplications.Add(application);
         await db.SaveChangesAsync();
 
-        var sut = CreateSut(db);
+        var sut = CreateApplicantSut(db);
         var input = new ResidenceInput(null, "1 Elm St", "Landlord Larry", "555-0101", new DateOnly(2020, 1, 1), new DateOnly(2022, 1, 1));
         var result = await sut.AddOrUpdateResidenceAsync(application.Id, "applicant-1", input);
 
@@ -318,7 +321,7 @@ public class ApplicationWorkflowServiceTests
         db.RentalApplications.Add(application);
         await db.SaveChangesAsync();
 
-        var sut = CreateSut(db);
+        var sut = CreateApplicantSut(db);
         var input = new ResidenceInput(null, "1 Elm St", "Landlord Larry", "555-0101", new DateOnly(2022, 1, 1), new DateOnly(2020, 1, 1));
         var result = await sut.AddOrUpdateResidenceAsync(application.Id, "applicant-1", input);
 

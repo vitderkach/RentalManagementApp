@@ -38,8 +38,8 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IUnitAvailabilityService, UnitAvailabilityService>();
-builder.Services.AddScoped<ILeaseFactory, LeaseFactory>();
-builder.Services.AddScoped<IApplicationWorkflowService, ApplicationWorkflowService>();
+builder.Services.AddScoped<IApplicantApplicationService, ApplicantApplicationService>();
+builder.Services.AddScoped<IApplicationReviewService, ApplicationReviewService>();
 builder.Services.AddScoped<IPropertyManagementService, PropertyManagementService>();
 
 var app = builder.Build();

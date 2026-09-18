@@ -17,13 +17,19 @@ namespace RentalManagementApp.Controllers;
 public class ApplicationsController : Controller
 {
     private readonly ApplicationDbContext _db;
-    private readonly IApplicationWorkflowService _workflow;
+    private readonly IApplicantApplicationService _applicantApplications;
+    private readonly IApplicationReviewService _applicationReviews;
     private readonly UserManager<ApplicationUser> _userManager;
 
-    public ApplicationsController(ApplicationDbContext db, IApplicationWorkflowService workflow, UserManager<ApplicationUser> userManager)
+    public ApplicationsController(
+        ApplicationDbContext db,
+        IApplicantApplicationService applicantApplications,
+        IApplicationReviewService applicationReviews,
+        UserManager<ApplicationUser> userManager)
     {
         _db = db;
-        _workflow = workflow;
+        _applicantApplications = applicantApplications;
+        _applicationReviews = applicationReviews;
         _userManager = userManager;
     }
 
@@ -90,7 +96,7 @@ public class ApplicationsController : Controller
     public async Task<IActionResult> Start(int unitId)
     {
         var userId = _userManager.GetUserId(User)!;
-        var result = await _workflow.StartApplicationAsync(unitId, userId);
+        var result = await _applicantApplications.StartApplicationAsync(unitId, userId);
         if (!result.Succeeded)
         {
             TempData["Error"] = result.Error;
@@ -106,7 +112,7 @@ public class ApplicationsController : Controller
     public async Task<IActionResult> Withdraw(int id)
     {
         var userId = _userManager.GetUserId(User)!;
-        var result = await _workflow.WithdrawAsync(id, userId);
+        var result = await _applicantApplications.WithdrawAsync(id, userId);
         if (!result.Succeeded)
         {
             TempData["Error"] = result.Error;
@@ -242,7 +248,7 @@ public class ApplicationsController : Controller
                 return View(nameof(Wizard), vm);
             }
 
-            var result = await _workflow.SaveApplicantInfoAsync(applicationId, userId,
+            var result = await _applicantApplications.SaveApplicantInfoAsync(applicationId, userId,
                 new ApplicantInfoInput(applicantInfo.FirstName, applicantInfo.LastName, applicantInfo.Phone, applicantInfo.Email, applicantInfo.CurrentAddress, applicantInfo.DesiredLeaseStartDate));
 
             if (!result.Succeeded)
@@ -260,7 +266,7 @@ public class ApplicationsController : Controller
 
         if (currentSection == WizardSection.ResidenceHistory)
         {
-            var result = await _workflow.SaveResidenceHistoryAsync(applicationId, userId);
+            var result = await _applicantApplications.SaveResidenceHistoryAsync(applicationId, userId);
             if (!result.Succeeded)
             {
                 TempData["Error"] = result.Error;
@@ -272,7 +278,7 @@ public class ApplicationsController : Controller
 
         if (currentSection == WizardSection.Summary && action == "submit")
         {
-            var result = await _workflow.SubmitAsync(applicationId, userId);
+            var result = await _applicantApplications.SubmitAsync(applicationId, userId);
             if (!result.Succeeded)
             {
                 TempData["Error"] = result.Error;
@@ -326,7 +332,7 @@ public class ApplicationsController : Controller
         }
 
         var userId = _userManager.GetUserId(User)!;
-        var result = await _workflow.AddOrUpdateResidenceAsync(model.ApplicationId, userId,
+        var result = await _applicantApplications.AddOrUpdateResidenceAsync(model.ApplicationId, userId,
             new ResidenceInput(model.Id, model.Address, model.LandlordName, model.LandlordPhone, model.MoveInDate, model.MoveOutDate));
 
         if (!result.Succeeded)
@@ -345,7 +351,7 @@ public class ApplicationsController : Controller
     public async Task<IActionResult> DeleteResidence(int applicationId, int residenceId)
     {
         var userId = _userManager.GetUserId(User)!;
-        var result = await _workflow.RemoveResidenceAsync(applicationId, userId, residenceId);
+        var result = await _applicantApplications.RemoveResidenceAsync(applicationId, userId, residenceId);
         if (!result.Succeeded)
         {
             return BadRequest(result.Error);
@@ -379,7 +385,7 @@ public class ApplicationsController : Controller
         }
 
         var reviewerId = _userManager.GetUserId(User)!;
-        var result = await _workflow.ReviewAsync(model.ApplicationId, reviewerId, model.Outcome, model.Comment);
+        var result = await _applicationReviews.ReviewAsync(model.ApplicationId, reviewerId, model.Outcome, model.Comment);
         if (!result.Succeeded)
         {
             ModelState.AddModelError(string.Empty, result.Error!);

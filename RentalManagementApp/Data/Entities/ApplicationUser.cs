@@ -2,9 +2,6 @@ using Microsoft.AspNetCore.Identity;
 
 namespace RentalManagementApp.Data.Entities;
 
-/// <summary>
-/// Identity user extended with the applicant/property-manager profile fields shared by both roles.
-/// </summary>
 public class ApplicationUser : IdentityUser
 {
     public string FirstName { get; set; } = string.Empty;

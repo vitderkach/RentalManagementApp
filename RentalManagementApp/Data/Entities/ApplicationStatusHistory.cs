@@ -2,10 +2,6 @@ using RentalManagementApp.Data.Enums;
 
 namespace RentalManagementApp.Data.Entities;
 
-/// <summary>
-/// Audit trail entry recording every status transition (submission, review outcome, withdrawal)
-/// so the application page can display who changed what, and when.
-/// </summary>
 public class ApplicationStatusHistory
 {
     public int Id { get; set; }

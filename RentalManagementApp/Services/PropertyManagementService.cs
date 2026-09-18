@@ -94,9 +94,7 @@ public class PropertyManagementService : IPropertyManagementService
             {
                 return ServiceResult<int>.Failure("Unit not found.");
             }
-
-            // An inactive unit type remains valid if the unit already uses it, but cannot be
-            // switched to a *different* inactive type.
+            
             if (!unitType.IsActive && existing.UnitTypeId != unitType.Id)
             {
                 return ServiceResult<int>.Failure("An inactive unit type cannot be selected.");

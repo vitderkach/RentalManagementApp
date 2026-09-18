@@ -18,7 +18,7 @@ public record ApplicantInfoInput(
     string CurrentAddress,
     DateOnly DesiredLeaseStartDate);
 
-public interface IApplicationWorkflowService
+public interface IApplicantApplicationService
 {
     Task<ServiceResult<int>> StartApplicationAsync(int unitId, string applicantId);
 
@@ -33,6 +33,9 @@ public interface IApplicationWorkflowService
     Task<ServiceResult> SubmitAsync(int applicationId, string userId);
 
     Task<ServiceResult> WithdrawAsync(int applicationId, string userId);
+}
 
+public interface IApplicationReviewService
+{
     Task<ServiceResult> ReviewAsync(int applicationId, string reviewerId, ApplicationReviewOutcome outcome, string? comment);
 }

@@ -2,27 +2,23 @@ using Microsoft.EntityFrameworkCore;
 using RentalManagementApp.Data;
 using RentalManagementApp.Data.Entities;
 using RentalManagementApp.Data.Enums;
-using RentalManagementApp.Services.Contracts;
 using RentalManagementApp.Services.Interfaces;
 
 namespace RentalManagementApp.Services;
 
-public class ApplicationWorkflowService : IApplicationWorkflowService
+public class ApplicantApplicationService : IApplicantApplicationService
 {
     private readonly ApplicationDbContext _db;
     private readonly IUnitAvailabilityService _availability;
-    private readonly ILeaseFactory _leaseFactory;
     private readonly TimeProvider _timeProvider;
 
-    public ApplicationWorkflowService(
+    public ApplicantApplicationService(
         ApplicationDbContext db,
         IUnitAvailabilityService availability,
-        ILeaseFactory leaseFactory,
         TimeProvider? timeProvider = null)
     {
         _db = db;
         _availability = availability;
-        _leaseFactory = leaseFactory;
         _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
@@ -276,66 +272,4 @@ public class ApplicationWorkflowService : IApplicationWorkflowService
         return ServiceResult.Success();
     }
 
-    public async Task<ServiceResult> ReviewAsync(int applicationId, string reviewerId, ApplicationReviewOutcome outcome, string? comment)
-    {
-        if (outcome is ApplicationReviewOutcome.Return or ApplicationReviewOutcome.Deny && string.IsNullOrWhiteSpace(comment))
-        {
-            return ServiceResult.Failure("A comment is required when returning or denying an application.");
-        }
-
-        var application = await _db.RentalApplications
-            .Include(a => a.Unit)
-            .ThenInclude(u => u!.Leases)
-            .FirstOrDefaultAsync(a => a.Id == applicationId);
-
-        if (application is null)
-        {
-            return ServiceResult.Failure("Application not found.");
-        }
-
-        if (application.Status != ApplicationStatus.Submitted)
-        {
-            return ServiceResult.Failure("Only submitted applications can be reviewed.");
-        }
-
-        switch (outcome)
-        {
-            case ApplicationReviewOutcome.Approve:
-                // The lease starts on the applicant's requested move-in date (captured during the
-                // Applicant Info step); if that date has since passed while awaiting review, the
-                // lease starts today instead.
-                var requestedStartDate = application.DesiredLeaseStartDate ?? Today;
-                var startDate = requestedStartDate < Today ? Today : requestedStartDate;
-
-                if (!_availability.IsUnitAvailable(application.Unit!.Leases, startDate))
-                {
-                    return ServiceResult.Failure("This unit already has an active lease. Approval is blocked.");
-                }
-
-                application.Status = ApplicationStatus.Approved;
-                var lease = _leaseFactory.CreateLeaseForApproval(application, startDate);
-                _db.Leases.Add(lease);
-                break;
-            case ApplicationReviewOutcome.Return:
-                application.Status = ApplicationStatus.Returned;
-                break;
-            case ApplicationReviewOutcome.Deny:
-                application.Status = ApplicationStatus.Denied;
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null);
-        }
-
-        application.UpdatedAt = Now;
-        application.StatusHistory.Add(new ApplicationStatusHistory
-        {
-            Status = application.Status,
-            ChangedByUserId = reviewerId,
-            ChangedAt = Now,
-            Comment = comment
-        });
-
-        await _db.SaveChangesAsync();
-        return ServiceResult.Success();
-    }
 }

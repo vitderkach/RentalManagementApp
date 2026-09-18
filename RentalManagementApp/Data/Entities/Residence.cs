@@ -1,6 +1,5 @@
 namespace RentalManagementApp.Data.Entities;
 
-/// <summary>A prior residence entry within an application's Residence History section.</summary>
 public class Residence
 {
     public int Id { get; set; }

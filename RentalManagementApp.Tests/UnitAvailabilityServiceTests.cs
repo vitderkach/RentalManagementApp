@@ -1,6 +1,5 @@
 using RentalManagementApp.Data.Entities;
 using RentalManagementApp.Services;
-using Xunit;
 
 namespace RentalManagementApp.Tests;
 

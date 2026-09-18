@@ -3,12 +3,12 @@
 @{
     var css = Model switch
     {
-        RentalManagementApp.Data.Enums.ApplicationStatus.Draft => "bg-secondary",
-        RentalManagementApp.Data.Enums.ApplicationStatus.Submitted => "bg-primary",
-        RentalManagementApp.Data.Enums.ApplicationStatus.Returned => "bg-warning text-dark",
-        RentalManagementApp.Data.Enums.ApplicationStatus.Approved => "bg-success",
-        RentalManagementApp.Data.Enums.ApplicationStatus.Denied => "bg-danger",
-        RentalManagementApp.Data.Enums.ApplicationStatus.Withdrawn => "bg-dark",
+        ApplicationStatus.Draft => "bg-secondary",
+        ApplicationStatus.Submitted => "bg-primary",
+        ApplicationStatus.Returned => "bg-warning text-dark",
+        ApplicationStatus.Approved => "bg-success",
+        ApplicationStatus.Denied => "bg-danger",
+        ApplicationStatus.Withdrawn => "bg-dark",
         _ => "bg-secondary"
     };
 }

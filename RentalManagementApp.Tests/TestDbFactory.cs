@@ -4,8 +4,6 @@ using RentalManagementApp.Data.Entities;
 
 namespace RentalManagementApp.Tests;
 
-/// <summary>Builds an isolated in-memory ApplicationDbContext, pre-populated with a manager,
-/// applicant, property, unit type and unit that tests can build on.</summary>
 public static class TestDbFactory
 {
     public static ApplicationDbContext Create(string? dbName = null)

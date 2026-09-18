@@ -1,6 +1,5 @@
 namespace RentalManagementApp.Services;
 
-/// <summary>Simple success/failure result used by application services to surface user-facing errors.</summary>
 public class ServiceResult
 {
     public bool Succeeded { get; }
