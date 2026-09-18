@@ -13,22 +13,18 @@ accepts rental applications for its apartments.
 
 ## Running locally
 
-1. Start a SQL Server (or SQL Server Edge/Express) instance, e.g. via Docker:
-   ```bash
-   docker run -e "ACCEPT_EULA=1" -e "MSSQL_SA_PASSWORD=YourStrong!Passw0rd" \
-     -p 1433:1433 --name rentalsql -d mcr.microsoft.com/mssql/server:2022-latest
-   # On Apple Silicon, use mcr.microsoft.com/azure-sql-edge instead.
-   ```
-2. Update `appsettings.json` `ConnectionStrings:DefaultConnection` if needed.
-3. Run the app - migrations are applied and the database is seeded automatically on startup:
+1. Start a local SQL Server instance.
+2. Configure the `ConnectionStrings:DefaultConnection` value in
+   `RentalManagementApp/appsettings.Development.json`, using credentials appropriate
+   to your local database. Do not commit database credentials.
+3. Run the app. Migrations are applied and the database is seeded automatically on startup:
    ```bash
    cd RentalManagementApp
    dotnet run
    ```
 
-Seeded accounts (password `Passw0rd!2024` for all):
-- Property managers: `manager1@rentalapp.test` .. `manager3@rentalapp.test`
-- Applicants: `applicant1@rentalapp.test` .. `applicant10@rentalapp.test`
+The startup seed creates sample applicant and property-manager accounts for local development.
+Their credentials are intentionally not documented here.
 
 ## Tests
 

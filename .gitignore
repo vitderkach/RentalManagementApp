@@ -2,4 +2,8 @@ bin/
 obj/
 /packages/
 riderModule.iml
+*.sln.DotSettings.user
 /_ReSharper.Caches/
+/.idea/
+Dockerfile
+docker-compose.yml
