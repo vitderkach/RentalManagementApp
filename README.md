@@ -3,6 +3,10 @@
 A full-stack ASP.NET Core MVC (.NET 10) application for a property management company that
 accepts rental applications for its apartments.
 
+## Demo
+
+[Watch the screen recording](<Screen Recording 2026-09-18 at 15.25.41.mov>)
+
 ## Stack
 
 - ASP.NET Core MVC + Razor views, partial views, and view components
