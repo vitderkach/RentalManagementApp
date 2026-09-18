@@ -43,7 +43,11 @@ public class ApplicationsController : Controller
             .Include(a => a.Applicant)
             .AsQueryable();
 
-        if (!IsManager)
+        if (IsManager)
+        {
+            query = query.Where(a => a.Unit!.Property!.PropertyManagerId == userId);
+        }
+        else
         {
             query = query.Where(a => a.ApplicantId == userId);
         }
@@ -72,8 +76,9 @@ public class ApplicationsController : Controller
             .ToListAsync();
 
         var propertyOptions = await _db.Properties
+            .Where(p => p.PropertyManagerId == userId)
             .OrderBy(p => p.Name)
-            .Select(p => new SelectListItem(p.Name, p.Id.ToString()))
+            .Select(p => new SelectListItem(p.Name, p.Id.ToString(), p.Id == propertyId))
             .ToListAsync();
 
         var vm = new ApplicationListViewModel
@@ -83,7 +88,7 @@ public class ApplicationsController : Controller
             StatusFilter = status,
             PropertyFilter = propertyId,
             StatusOptions = Enum.GetValues<ApplicationStatus>()
-                .Select(s => new SelectListItem(s.ToString(), ((int)s).ToString())),
+                .Select(s => new SelectListItem(s.ToString(), ((int)s).ToString(), s == status)),
             PropertyOptions = propertyOptions
         };
 
@@ -130,6 +135,7 @@ public class ApplicationsController : Controller
             .FirstOrDefaultAsync(a => a.Id == id);
 
         if (application is null) return NotFound();
+        if (IsManager && application.Unit!.Property!.PropertyManagerId != userId) return Forbid();
         if (!IsManager && application.ApplicantId != userId) return Forbid();
 
         var vm = new ApplicationDetailsViewModel
@@ -362,8 +368,12 @@ public class ApplicationsController : Controller
     [Authorize(Policy = "RequirePropertyManager")]
     public async Task<IActionResult> ReviewModal(int id)
     {
-        var application = await _db.RentalApplications.FirstOrDefaultAsync(a => a.Id == id);
+        var userId = _userManager.GetUserId(User)!;
+        var application = await _db.RentalApplications
+            .Include(a => a.Unit).ThenInclude(u => u!.Property)
+            .FirstOrDefaultAsync(a => a.Id == id);
         if (application is null || application.Status != ApplicationStatus.Submitted) return NotFound();
+        if (application.Unit!.Property!.PropertyManagerId != userId) return Forbid();
 
         return PartialView("_ReviewForm", new ReviewFormViewModel { ApplicationId = id });
     }

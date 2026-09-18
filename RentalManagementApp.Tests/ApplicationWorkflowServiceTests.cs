@@ -212,6 +212,27 @@ public class ApplicantApplicationServiceTests
     }
 
     [Fact]
+    public async Task ReviewAsync_Fails_WhenReviewerDoesNotManageTheProperty()
+    {
+        using var db = TestDbFactory.Create();
+        var (unit, _) = TestDbFactory.SeedPropertyAndUnit(db);
+        var application = new RentalApplication
+        {
+            UnitId = unit.Id,
+            ApplicantId = "applicant-1",
+            Status = ApplicationStatus.Submitted
+        };
+        db.RentalApplications.Add(application);
+        await db.SaveChangesAsync();
+
+        var sut = CreateReviewSut(db);
+        var result = await sut.ReviewAsync(application.Id, "manager-2", ApplicationReviewOutcome.Approve, null);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(ApplicationStatus.Submitted, (await db.RentalApplications.FindAsync(application.Id))!.Status);
+    }
+
+    [Fact]
     public async Task ReviewAsync_Approve_UsesApplicantsDesiredStartDate_ForTheTwelveMonthTerm()
     {
         using var db = TestDbFactory.Create();

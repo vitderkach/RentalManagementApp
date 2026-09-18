@@ -171,7 +171,6 @@ public static class DbSeeder
         ApplicationDbContext db, List<ApplicationUser> applicants, List<Property> properties)
     {
         var faker = new Faker("en");
-        var units = properties.SelectMany(p => p.Units).ToList();
         var statuses = new[]
         {
             ApplicationStatus.Draft, ApplicationStatus.Submitted, ApplicationStatus.Returned,
@@ -184,19 +183,19 @@ public static class DbSeeder
             .Where(lease => lease.StartDate <= today && lease.EndDate >= today)
             .Select(lease => lease.UnitId)
             .ToListAsync();
-        var availableUnits = units.Where(unit => !activeLeaseUnitIds.Contains(unit.Id)).ToList();
-        var unitIndex = 0;
 
         for (var i = 0; i < statuses.Length; i++)
         {
             var status = statuses[i];
-            if (await db.RentalApplications.AnyAsync(application => application.Status == status))
+            var property = properties[i % properties.Count];
+            if (await db.RentalApplications.AnyAsync(application =>
+                    application.Status == status && application.Unit!.PropertyId == property.Id))
             {
                 continue;
             }
 
             var applicant = applicants[i % applicants.Count];
-            var unit = availableUnits[unitIndex++ % availableUnits.Count];
+            var unit = property.Units.First(unit => !activeLeaseUnitIds.Contains(unit.Id));
 
             var application = new RentalApplication
             {
@@ -243,7 +242,7 @@ public static class DbSeeder
                 });
             }
 
-            var manager = properties.First(p => p.Units.Any(u => u.Id == unit.Id)).PropertyManagerId;
+            var manager = property.PropertyManagerId;
 
             switch (status)
             {

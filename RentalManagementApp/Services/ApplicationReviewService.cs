@@ -29,11 +29,18 @@ public class ApplicationReviewService(
 
         var application = await db.RentalApplications
             .Include(a => a.Unit)
+            .ThenInclude(u => u!.Property)
+            .Include(a => a.Unit)
             .ThenInclude(u => u!.Leases)
             .FirstOrDefaultAsync(a => a.Id == applicationId);
         if (application is null)
         {
             return ServiceResult.Failure("Application not found.");
+        }
+
+        if (application.Unit!.Property!.PropertyManagerId != reviewerId)
+        {
+            return ServiceResult.Failure("You are not authorized to review applications for this property.");
         }
 
         if (application.Status != ApplicationStatus.Submitted)
