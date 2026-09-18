@@ -19,26 +19,12 @@ accepts rental applications for its apartments.
      -p 1433:1433 --name rentalsql -d mcr.microsoft.com/mssql/server:2022-latest
    # On Apple Silicon, use mcr.microsoft.com/azure-sql-edge instead.
    ```
-2. Configure `RentalManagementApp/appsettings.Development.json` (or the
-   `ConnectionStrings__DefaultConnection` environment variable) with the SQL Server password
-   you chose. The database name may be left as `RentalManagementApp`.
-3. Run the app. Migrations are applied and the database is seeded automatically on startup:
+2. Update `appsettings.json` `ConnectionStrings:DefaultConnection` if needed.
+3. Run the app - migrations are applied and the database is seeded automatically on startup:
    ```bash
    cd RentalManagementApp
    dotnet run
    ```
-
-### Docker Compose
-
-The included Compose setup starts both the web application and SQL Server:
-
-```bash
-docker compose up --build
-```
-
-Before running it, replace the placeholder password in
-`docker-compose.yml`'s `ConnectionStrings__DefaultConnection` with the value of
-`MSSQL_SA_PASSWORD`. The app is then available at `http://localhost:8080`.
 
 Seeded accounts (password `Passw0rd!2024` for all):
 - Property managers: `manager1@rentalapp.test` .. `manager3@rentalapp.test`
@@ -59,3 +45,14 @@ dotnet test
 - `ViewModels` - view models per feature area
 - `ViewComponents` - reusable wizard sections and status badge
 - `Controllers` / `Views` - MVC controllers and Razor views, including modal-backed partial views
+
+## Key business rules
+
+- A unit is unavailable while any lease's term covers today.
+- Approving a submitted application issues a twelve-month lease and is blocked if the unit
+  already has an active lease.
+- Applications can only be edited while in `Draft` or `Returned` status; `Approved`, `Denied`,
+  and `Withdrawn` are terminal.
+- An inactive unit type remains valid on units that already use it but cannot be assigned to any
+  other unit (enforced server-side).
+- Returning or denying an application requires a comment; approving does not.
