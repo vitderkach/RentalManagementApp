@@ -1,20 +1,22 @@
 using Microsoft.EntityFrameworkCore;
-using RentalManagementApp.Data.Entities;
-using RentalManagementApp.Data.Enums;
-using RentalManagementApp.Services;
-using RentalManagementApp.Services.Contracts;
-using RentalManagementApp.Services.Interfaces;
+using RentalManagementApp.Domain.Entities;
+using RentalManagementApp.Domain.Enums;
+using RentalManagementApp.Application.Services;
+using RentalManagementApp.Application.Contracts;
+using RentalManagementApp.Application.Interfaces;
+using RentalManagementApp.Infrastructure.Data;
+using RentalManagementApp.Infrastructure.Data.Repositories;
 using Xunit;
 
 namespace RentalManagementApp.Tests;
 
 public class ApplicantApplicationServiceTests
 {
-    private static ApplicantApplicationService CreateApplicantSut(Data.ApplicationDbContext db) =>
-        new(db, new UnitAvailabilityService());
+    private static ApplicantApplicationService CreateApplicantSut(ApplicationDbContext db) =>
+        new(new ApplicationRepository(db), new UnitAvailabilityService());
 
-    private static ApplicationReviewService CreateReviewSut(Data.ApplicationDbContext db) =>
-        new(db, new UnitAvailabilityService(), TimeProvider.System);
+    private static ApplicationReviewService CreateReviewSut(ApplicationDbContext db) =>
+        new(new ApplicationRepository(db), new UnitAvailabilityService(), TimeProvider.System);
 
     private static ApplicantInfoInput ValidApplicantInfo() =>
         new("Jane", "Doe", "555-0100", "jane@example.com", "123 Elm St", DateOnly.FromDateTime(DateTime.UtcNow).AddDays(30));

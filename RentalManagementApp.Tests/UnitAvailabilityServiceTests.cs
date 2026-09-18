@@ -1,5 +1,5 @@
-using RentalManagementApp.Data.Entities;
-using RentalManagementApp.Services;
+using RentalManagementApp.Domain.Entities;
+using RentalManagementApp.Application.Services;
 
 namespace RentalManagementApp.Tests;
 

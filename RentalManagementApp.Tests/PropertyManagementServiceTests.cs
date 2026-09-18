@@ -1,8 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using RentalManagementApp.Data.Entities;
-using RentalManagementApp.Data.Enums;
-using RentalManagementApp.Services;
-using RentalManagementApp.Services.Interfaces;
+using RentalManagementApp.Domain.Entities;
+using RentalManagementApp.Domain.Enums;
+using RentalManagementApp.Application.Services;
+using RentalManagementApp.Application.Interfaces;
+using RentalManagementApp.Infrastructure.Data.Repositories;
 using Xunit;
 
 namespace RentalManagementApp.Tests;
@@ -18,7 +19,7 @@ public class PropertyManagementServiceTests
         db.UnitTypes.Add(inactiveType);
         await db.SaveChangesAsync();
 
-        var sut = new PropertyManagementService(db);
+        var sut = new PropertyManagementService(new PropertyRepository(db));
         var result = await sut.SaveUnitAsync(property.Id, "manager-1",
             new UnitInput(null, "202", 2, 1400m, inactiveType.Id));
 
@@ -43,7 +44,7 @@ public class PropertyManagementServiceTests
         db.Units.Add(unit);
         await db.SaveChangesAsync();
 
-        var sut = new PropertyManagementService(db);
+        var sut = new PropertyManagementService(new PropertyRepository(db));
         // Update other fields but keep the same (inactive) unit type - should be allowed.
         var result = await sut.SaveUnitAsync(property.Id, "manager-1",
             new UnitInput(unit.Id, "1A", 1, 1050m, inactiveType.Id));
@@ -70,7 +71,7 @@ public class PropertyManagementServiceTests
         db.Units.Add(unit);
         await db.SaveChangesAsync();
 
-        var sut = new PropertyManagementService(db);
+        var sut = new PropertyManagementService(new PropertyRepository(db));
         var result = await sut.SaveUnitAsync(property.Id, "manager-1",
             new UnitInput(unit.Id, "1", 1, 1000m, inactiveType.Id));
 
@@ -84,7 +85,7 @@ public class PropertyManagementServiceTests
         var (_, property) = TestDbFactory.SeedPropertyAndUnit(db);
         var activeType = await db.UnitTypes.FirstAsync();
 
-        var sut = new PropertyManagementService(db);
+        var sut = new PropertyManagementService(new PropertyRepository(db));
         var result = await sut.SaveUnitAsync(property.Id, "manager-1",
             new UnitInput(null, "303", 2, 1600m, activeType.Id));
 
@@ -99,7 +100,7 @@ public class PropertyManagementServiceTests
         db.RentalApplications.Add(new RentalApplication { UnitId = unit.Id, ApplicantId = "applicant-1", Status = ApplicationStatus.Draft });
         await db.SaveChangesAsync();
 
-        var sut = new PropertyManagementService(db);
+        var sut = new PropertyManagementService(new PropertyRepository(db));
         var result = await sut.DeleteUnitAsync(unit.Id, "manager-1");
 
         Assert.False(result.Succeeded);
@@ -112,7 +113,7 @@ public class PropertyManagementServiceTests
         var (_, property) = TestDbFactory.SeedPropertyAndUnit(db);
         var activeType = await db.UnitTypes.FirstAsync();
 
-        var sut = new PropertyManagementService(db);
+        var sut = new PropertyManagementService(new PropertyRepository(db));
         var result = await sut.SaveUnitAsync(property.Id, "manager-2",
             new UnitInput(null, "303", 2, 1600m, activeType.Id));
 
@@ -124,7 +125,7 @@ public class PropertyManagementServiceTests
     {
         using var db = TestDbFactory.Create();
         var (_, property) = TestDbFactory.SeedPropertyAndUnit(db);
-        var sut = new PropertyManagementService(db);
+        var sut = new PropertyManagementService(new PropertyRepository(db));
 
         var result = await sut.UpdatePropertyAsync(
             property.Id, "manager-2", "Updated Property", "2 Main St", null, "Testville", "TS", "00000");
@@ -138,7 +139,7 @@ public class PropertyManagementServiceTests
     {
         using var db = TestDbFactory.Create();
         var (unit, _) = TestDbFactory.SeedPropertyAndUnit(db);
-        var sut = new PropertyManagementService(db);
+        var sut = new PropertyManagementService(new PropertyRepository(db));
 
         var result = await sut.DeleteUnitAsync(unit.Id, "manager-2");
 

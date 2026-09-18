@@ -1,0 +1,15 @@
+@model RentalManagementApp.Domain.Enums.ApplicationStatus
+
+@{
+    var css = Model switch
+    {
+        ApplicationStatus.Draft => "bg-secondary",
+        ApplicationStatus.Submitted => "bg-primary",
+        ApplicationStatus.Returned => "bg-warning text-dark",
+        ApplicationStatus.Approved => "bg-success",
+        ApplicationStatus.Denied => "bg-danger",
+        ApplicationStatus.Withdrawn => "bg-dark",
+        _ => "bg-secondary"
+    };
+}
+<span class="badge @css">@Model</span>

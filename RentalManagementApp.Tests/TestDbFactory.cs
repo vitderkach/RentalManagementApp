@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using RentalManagementApp.Data;
-using RentalManagementApp.Data.Entities;
+using RentalManagementApp.Infrastructure.Data;
+using RentalManagementApp.Domain.Entities;
 
 namespace RentalManagementApp.Tests;
 

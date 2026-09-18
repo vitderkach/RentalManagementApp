@@ -20,7 +20,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\RentalManagementApp\RentalManagementApp.csproj" />
+    <ProjectReference Include="..\RentalManagementApp.Application\RentalManagementApp.Application.csproj" />
+    <ProjectReference Include="..\RentalManagementApp.Domain\RentalManagementApp.Domain.csproj" />
+    <ProjectReference Include="..\RentalManagementApp.Infrastructure\RentalManagementApp.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
