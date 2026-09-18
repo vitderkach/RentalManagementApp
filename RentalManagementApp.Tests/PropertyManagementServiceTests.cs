@@ -104,4 +104,45 @@ public class PropertyManagementServiceTests
 
         Assert.False(result.Succeeded);
     }
+
+    [Fact]
+    public async Task SaveUnitAsync_Fails_WhenPropertyBelongsToAnotherManager()
+    {
+        using var db = TestDbFactory.Create();
+        var (_, property) = TestDbFactory.SeedPropertyAndUnit(db);
+        var activeType = await db.UnitTypes.FirstAsync();
+
+        var sut = new PropertyManagementService(db);
+        var result = await sut.SaveUnitAsync(property.Id, "manager-2",
+            new UnitInput(null, "303", 2, 1600m, activeType.Id));
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task UpdatePropertyAsync_Fails_WhenPropertyBelongsToAnotherManager()
+    {
+        using var db = TestDbFactory.Create();
+        var (_, property) = TestDbFactory.SeedPropertyAndUnit(db);
+        var sut = new PropertyManagementService(db);
+
+        var result = await sut.UpdatePropertyAsync(
+            property.Id, "manager-2", "Updated Property", "2 Main St", null, "Testville", "TS", "00000");
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Test Property", (await db.Properties.FindAsync(property.Id))!.Name);
+    }
+
+    [Fact]
+    public async Task DeleteUnitAsync_Fails_WhenUnitBelongsToAnotherManager()
+    {
+        using var db = TestDbFactory.Create();
+        var (unit, _) = TestDbFactory.SeedPropertyAndUnit(db);
+        var sut = new PropertyManagementService(db);
+
+        var result = await sut.DeleteUnitAsync(unit.Id, "manager-2");
+
+        Assert.False(result.Succeeded);
+        Assert.NotNull(await db.Units.FindAsync(unit.Id));
+    }
 }

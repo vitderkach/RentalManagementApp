@@ -28,6 +28,7 @@ public class RentalApplication
     public string ApplicantPhone { get; set; } = string.Empty;
     public string ApplicantEmail { get; set; } = string.Empty;
     public string CurrentAddress { get; set; } = string.Empty;
+    public DateOnly? DesiredLeaseStartDate { get; set; }
     public bool ApplicantInfoCompleted { get; set; }
 
     // Residence History section

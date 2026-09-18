@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using RentalManagementApp.Data.Entities;
 using RentalManagementApp.Data.Enums;
 using RentalManagementApp.Services;
+using RentalManagementApp.Services.Contracts;
 using RentalManagementApp.Services.Interfaces;
 using Xunit;
 
@@ -13,7 +14,7 @@ public class ApplicationWorkflowServiceTests
         new(db, new UnitAvailabilityService(), new LeaseFactory());
 
     private static ApplicantInfoInput ValidApplicantInfo() =>
-        new("Jane", "Doe", "555-0100", "jane@example.com", "123 Elm St");
+        new("Jane", "Doe", "555-0100", "jane@example.com", "123 Elm St", DateOnly.FromDateTime(DateTime.UtcNow).AddDays(30));
 
     [Fact]
     public async Task StartApplicationAsync_CreatesDraft_WhenUnitIsAvailable()
@@ -170,9 +171,9 @@ public class ApplicationWorkflowServiceTests
     }
 
     [Theory]
-    [InlineData(ReviewOutcome.Return)]
-    [InlineData(ReviewOutcome.Deny)]
-    public async Task ReviewAsync_RequiresComment_ForReturnOrDeny(ReviewOutcome outcome)
+    [InlineData(ApplicationReviewOutcome.Return)]
+    [InlineData(ApplicationReviewOutcome.Deny)]
+    public async Task ReviewAsync_RequiresComment_ForReturnOrDeny(ApplicationReviewOutcome outcome)
     {
         using var db = TestDbFactory.Create();
         var (unit, _) = TestDbFactory.SeedPropertyAndUnit(db);
@@ -196,7 +197,7 @@ public class ApplicationWorkflowServiceTests
         await db.SaveChangesAsync();
 
         var sut = CreateSut(db);
-        var result = await sut.ReviewAsync(application.Id, "manager-1", ReviewOutcome.Approve, null);
+        var result = await sut.ReviewAsync(application.Id, "manager-1", ApplicationReviewOutcome.Approve, null);
 
         Assert.True(result.Succeeded);
         var reloaded = await db.RentalApplications.SingleAsync(a => a.Id == application.Id);
@@ -205,6 +206,51 @@ public class ApplicationWorkflowServiceTests
         var lease = await db.Leases.SingleAsync(l => l.RentalApplicationId == application.Id);
         Assert.Equal(1500m, lease.MonthlyRent);
         Assert.Equal(lease.StartDate.AddMonths(12).AddDays(-1), lease.EndDate);
+    }
+
+    [Fact]
+    public async Task ReviewAsync_Approve_UsesApplicantsDesiredStartDate_ForTheTwelveMonthTerm()
+    {
+        using var db = TestDbFactory.Create();
+        var (unit, _) = TestDbFactory.SeedPropertyAndUnit(db, rent: 1500m);
+        var desiredStartDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(14);
+        var application = new RentalApplication
+        {
+            UnitId = unit.Id, ApplicantId = "applicant-1", Status = ApplicationStatus.Submitted,
+            DesiredLeaseStartDate = desiredStartDate
+        };
+        db.RentalApplications.Add(application);
+        await db.SaveChangesAsync();
+
+        var sut = CreateSut(db);
+        var result = await sut.ReviewAsync(application.Id, "manager-1", ApplicationReviewOutcome.Approve, null);
+
+        Assert.True(result.Succeeded);
+        var lease = await db.Leases.SingleAsync(l => l.RentalApplicationId == application.Id);
+        Assert.Equal(desiredStartDate, lease.StartDate);
+        Assert.Equal(desiredStartDate.AddMonths(12).AddDays(-1), lease.EndDate);
+    }
+
+    [Fact]
+    public async Task ReviewAsync_Approve_ClampsToToday_WhenDesiredStartDateHasAlreadyPassed()
+    {
+        using var db = TestDbFactory.Create();
+        var (unit, _) = TestDbFactory.SeedPropertyAndUnit(db);
+        var pastDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-10);
+        var application = new RentalApplication
+        {
+            UnitId = unit.Id, ApplicantId = "applicant-1", Status = ApplicationStatus.Submitted,
+            DesiredLeaseStartDate = pastDate
+        };
+        db.RentalApplications.Add(application);
+        await db.SaveChangesAsync();
+
+        var sut = CreateSut(db);
+        var result = await sut.ReviewAsync(application.Id, "manager-1", ApplicationReviewOutcome.Approve, null);
+
+        Assert.True(result.Succeeded);
+        var lease = await db.Leases.SingleAsync(l => l.RentalApplicationId == application.Id);
+        Assert.Equal(DateOnly.FromDateTime(DateTime.UtcNow), lease.StartDate);
     }
 
     [Fact]
@@ -220,7 +266,7 @@ public class ApplicationWorkflowServiceTests
         await db.SaveChangesAsync();
 
         var sut = CreateSut(db);
-        var result = await sut.ReviewAsync(application.Id, "manager-1", ReviewOutcome.Approve, null);
+        var result = await sut.ReviewAsync(application.Id, "manager-1", ApplicationReviewOutcome.Approve, null);
 
         Assert.False(result.Succeeded);
         Assert.Equal(ApplicationStatus.Submitted, (await db.RentalApplications.FindAsync(application.Id))!.Status);
@@ -236,7 +282,7 @@ public class ApplicationWorkflowServiceTests
         await db.SaveChangesAsync();
 
         var sut = CreateSut(db);
-        var result = await sut.ReviewAsync(application.Id, "manager-1", ReviewOutcome.Approve, null);
+        var result = await sut.ReviewAsync(application.Id, "manager-1", ApplicationReviewOutcome.Approve, null);
 
         Assert.False(result.Succeeded);
     }
@@ -261,5 +307,22 @@ public class ApplicationWorkflowServiceTests
         Assert.True(result.Succeeded);
         var reloaded = await db.RentalApplications.FindAsync(application.Id);
         Assert.False(reloaded!.ResidenceHistoryCompleted);
+    }
+
+    [Fact]
+    public async Task AddOrUpdateResidenceAsync_Fails_WhenMoveOutDateIsBeforeMoveInDate()
+    {
+        using var db = TestDbFactory.Create();
+        var (unit, _) = TestDbFactory.SeedPropertyAndUnit(db);
+        var application = new RentalApplication { UnitId = unit.Id, ApplicantId = "applicant-1", Status = ApplicationStatus.Draft };
+        db.RentalApplications.Add(application);
+        await db.SaveChangesAsync();
+
+        var sut = CreateSut(db);
+        var input = new ResidenceInput(null, "1 Elm St", "Landlord Larry", "555-0101", new DateOnly(2022, 1, 1), new DateOnly(2020, 1, 1));
+        var result = await sut.AddOrUpdateResidenceAsync(application.Id, "applicant-1", input);
+
+        Assert.False(result.Succeeded);
+        Assert.Empty(await db.Residences.Where(r => r.RentalApplicationId == application.Id).ToListAsync());
     }
 }

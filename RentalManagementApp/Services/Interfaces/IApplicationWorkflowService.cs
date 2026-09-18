@@ -1,11 +1,6 @@
-namespace RentalManagementApp.Services.Interfaces;
+using RentalManagementApp.Services.Contracts;
 
-public enum ReviewOutcome
-{
-    Approve,
-    Return,
-    Deny
-}
+namespace RentalManagementApp.Services.Interfaces;
 
 public record ResidenceInput(
     int? Id,
@@ -20,7 +15,8 @@ public record ApplicantInfoInput(
     string LastName,
     string Phone,
     string Email,
-    string CurrentAddress);
+    string CurrentAddress,
+    DateOnly DesiredLeaseStartDate);
 
 public interface IApplicationWorkflowService
 {
@@ -38,5 +34,5 @@ public interface IApplicationWorkflowService
 
     Task<ServiceResult> WithdrawAsync(int applicationId, string userId);
 
-    Task<ServiceResult> ReviewAsync(int applicationId, string reviewerId, ReviewOutcome outcome, string? comment);
+    Task<ServiceResult> ReviewAsync(int applicationId, string reviewerId, ApplicationReviewOutcome outcome, string? comment);
 }

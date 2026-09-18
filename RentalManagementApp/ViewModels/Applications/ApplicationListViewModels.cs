@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using RentalManagementApp.Data.Entities;
 using RentalManagementApp.Data.Enums;
-using RentalManagementApp.Services.Interfaces;
+using RentalManagementApp.Services.Contracts;
 
 namespace RentalManagementApp.ViewModels.Applications;
 
@@ -46,6 +46,7 @@ public class ApplicationDetailsViewModel
     public string ApplicantEmail { get; set; } = string.Empty;
     public string ApplicantPhone { get; set; } = string.Empty;
     public string CurrentAddress { get; set; } = string.Empty;
+    public DateOnly? DesiredLeaseStartDate { get; set; }
     public List<ResidenceViewModel> Residences { get; set; } = new();
     public List<ApplicationStatusHistoryItemViewModel> StatusHistory { get; set; } = new();
     public bool CanManagerReview { get; set; }
@@ -59,7 +60,7 @@ public class ReviewFormViewModel
     public int ApplicationId { get; set; }
 
     [Required]
-    public ReviewOutcome Outcome { get; set; }
+    public ApplicationReviewOutcome Outcome { get; set; }
 
     [StringLength(1000)]
     public string? Comment { get; set; }

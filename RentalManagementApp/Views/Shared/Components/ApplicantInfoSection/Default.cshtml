@@ -14,7 +14,7 @@
     </div>
     <div class="col-md-6">
         <label asp-for="ApplicantInfo.Phone" class="form-label"></label>
-        <input asp-for="ApplicantInfo.Phone" class="form-control" disabled="@Model.IsReadOnly" />
+        <input asp-for="ApplicantInfo.Phone" type="tel" autocomplete="tel" class="form-control" disabled="@Model.IsReadOnly" />
         <span asp-validation-for="ApplicantInfo.Phone" class="text-danger"></span>
     </div>
     <div class="col-md-6">
@@ -26,5 +26,10 @@
         <label asp-for="ApplicantInfo.CurrentAddress" class="form-label"></label>
         <textarea asp-for="ApplicantInfo.CurrentAddress" class="form-control" rows="2" disabled="@Model.IsReadOnly"></textarea>
         <span asp-validation-for="ApplicantInfo.CurrentAddress" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="ApplicantInfo.DesiredLeaseStartDate" class="form-label"></label>
+        <input asp-for="ApplicantInfo.DesiredLeaseStartDate" class="form-control" disabled="@Model.IsReadOnly" />
+        <span asp-validation-for="ApplicantInfo.DesiredLeaseStartDate" class="text-danger"></span>
     </div>
 </div>

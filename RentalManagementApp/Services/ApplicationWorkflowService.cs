@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using RentalManagementApp.Data;
 using RentalManagementApp.Data.Entities;
 using RentalManagementApp.Data.Enums;
+using RentalManagementApp.Services.Contracts;
 using RentalManagementApp.Services.Interfaces;
 
 namespace RentalManagementApp.Services;
@@ -95,8 +96,21 @@ public class ApplicationWorkflowService : IApplicationWorkflowService
         application.ApplicantPhone = input.Phone;
         application.ApplicantEmail = input.Email;
         application.CurrentAddress = input.CurrentAddress;
+        application.DesiredLeaseStartDate = input.DesiredLeaseStartDate;
         application.ApplicantInfoCompleted = true;
         application.UpdatedAt = Now;
+
+        // Seed Residence History with the applicant's current address so they don't have
+        // to re-enter it; they still need to fill in the landlord/move-in details.
+        if (!application.Residences.Any(r => r.Address == input.CurrentAddress))
+        {
+            application.Residences.Add(new Residence
+            {
+                RentalApplicationId = application.Id,
+                Address = input.CurrentAddress,
+                MoveInDate = Today
+            });
+        }
 
         await _db.SaveChangesAsync();
         return ServiceResult.Success();
@@ -132,6 +146,11 @@ public class ApplicationWorkflowService : IApplicationWorkflowService
         if (!application.Status.IsEditable())
         {
             return ServiceResult<int>.Failure("This application can no longer be edited.");
+        }
+
+        if (input.MoveOutDate is { } moveOut && moveOut < input.MoveInDate)
+        {
+            return ServiceResult<int>.Failure("Move-out date cannot be earlier than the move-in date.");
         }
 
         Residence residence;
@@ -257,9 +276,9 @@ public class ApplicationWorkflowService : IApplicationWorkflowService
         return ServiceResult.Success();
     }
 
-    public async Task<ServiceResult> ReviewAsync(int applicationId, string reviewerId, ReviewOutcome outcome, string? comment)
+    public async Task<ServiceResult> ReviewAsync(int applicationId, string reviewerId, ApplicationReviewOutcome outcome, string? comment)
     {
-        if (outcome is ReviewOutcome.Return or ReviewOutcome.Deny && string.IsNullOrWhiteSpace(comment))
+        if (outcome is ApplicationReviewOutcome.Return or ApplicationReviewOutcome.Deny && string.IsNullOrWhiteSpace(comment))
         {
             return ServiceResult.Failure("A comment is required when returning or denying an application.");
         }
@@ -281,20 +300,26 @@ public class ApplicationWorkflowService : IApplicationWorkflowService
 
         switch (outcome)
         {
-            case ReviewOutcome.Approve:
-                if (!_availability.IsUnitAvailable(application.Unit!.Leases, Today))
+            case ApplicationReviewOutcome.Approve:
+                // The lease starts on the applicant's requested move-in date (captured during the
+                // Applicant Info step); if that date has since passed while awaiting review, the
+                // lease starts today instead.
+                var requestedStartDate = application.DesiredLeaseStartDate ?? Today;
+                var startDate = requestedStartDate < Today ? Today : requestedStartDate;
+
+                if (!_availability.IsUnitAvailable(application.Unit!.Leases, startDate))
                 {
                     return ServiceResult.Failure("This unit already has an active lease. Approval is blocked.");
                 }
 
                 application.Status = ApplicationStatus.Approved;
-                var lease = _leaseFactory.CreateLeaseForApproval(application, Today);
+                var lease = _leaseFactory.CreateLeaseForApproval(application, startDate);
                 _db.Leases.Add(lease);
                 break;
-            case ReviewOutcome.Return:
+            case ApplicationReviewOutcome.Return:
                 application.Status = ApplicationStatus.Returned;
                 break;
-            case ReviewOutcome.Deny:
+            case ApplicationReviewOutcome.Deny:
                 application.Status = ApplicationStatus.Denied;
                 break;
             default:

@@ -76,6 +76,11 @@ public static class DbSeeder
             var existing = await userManager.FindByEmailAsync(email);
             if (existing is not null)
             {
+                if (!await userManager.IsInRoleAsync(existing, role))
+                {
+                    await userManager.AddToRoleAsync(existing, role);
+                }
+
                 result.Add(existing);
                 continue;
             }
@@ -106,14 +111,9 @@ public static class DbSeeder
     private static async Task<List<Property>> SeedPropertiesAndUnitsAsync(
         ApplicationDbContext db, List<ApplicationUser> managers, List<UnitType> unitTypes)
     {
-        if (await db.Properties.AnyAsync())
-        {
-            return await db.Properties.Include(p => p.Units).ToListAsync();
-        }
-
         var faker = new Faker("en");
         var activeTypes = unitTypes.Where(t => t.IsActive).ToList();
-        var properties = new List<Property>();
+        var properties = await db.Properties.Include(p => p.Units).ToListAsync();
 
         var propertyNames = new[]
         {
@@ -123,41 +123,48 @@ public static class DbSeeder
 
         for (var i = 0; i < propertyNames.Length; i++)
         {
-            var manager = managers[i % managers.Count];
-            var property = new Property
+            var property = properties.FirstOrDefault(p => p.Name == propertyNames[i]);
+            if (property is null)
             {
-                Name = propertyNames[i],
-                AddressLine1 = faker.Address.StreetAddress(),
-                City = faker.Address.City(),
-                State = faker.Address.StateAbbr(),
-                ZipCode = faker.Address.ZipCode(),
-                PropertyManagerId = manager.Id
-            };
+                var manager = managers[i % managers.Count];
+                property = new Property
+                {
+                    Name = propertyNames[i],
+                    AddressLine1 = faker.Address.StreetAddress(),
+                    City = faker.Address.City(),
+                    State = faker.Address.StateAbbr(),
+                    ZipCode = faker.Address.ZipCode(),
+                    PropertyManagerId = manager.Id
+                };
+                properties.Add(property);
+                db.Properties.Add(property);
+            }
 
-            var unitCount = faker.Random.Int(4, 8);
-            for (var u = 1; u <= unitCount; u++)
+            if (property.Units.Any())
             {
-                var type = faker.PickRandom(activeTypes);
+                continue;
+            }
+
+            for (var u = 1; u <= 6; u++)
+            {
+                var type = activeTypes[(i + u - 1) % activeTypes.Count];
                 var bedrooms = type.Name switch
                 {
                     "Studio" => 0,
                     "One Bedroom" => 1,
                     "Two Bedroom" => 2,
                     "Three Bedroom" => 3,
-                    _ => faker.Random.Int(1, 4)
+                    _ => 2
                 };
 
                 property.Units.Add(new Unit
                 {
-                    UnitNumber = $"{faker.Random.Int(1, 9)}{u:00}",
+                    UnitNumber = $"{i + 1}{u:00}",
                     Bedrooms = bedrooms,
-                    MonthlyRent = faker.Random.Decimal(950, 3200),
+                    MonthlyRent = 950 + ((i * 6 + u) * 125),
                     UnitTypeId = type.Id
                 });
             }
-
-            properties.Add(property);
-            db.Properties.Add(property);
         }
 
         await db.SaveChangesAsync();
@@ -167,11 +174,6 @@ public static class DbSeeder
     private static async Task SeedApplicationsAsync(
         ApplicationDbContext db, List<ApplicationUser> applicants, List<Property> properties)
     {
-        if (await db.RentalApplications.AnyAsync())
-        {
-            return;
-        }
-
         var faker = new Faker("en");
         var units = properties.SelectMany(p => p.Units).ToList();
         var statuses = new[]
@@ -181,13 +183,24 @@ public static class DbSeeder
         };
 
         var now = DateTime.UtcNow;
+        var today = DateOnly.FromDateTime(now);
+        var activeLeaseUnitIds = await db.Leases
+            .Where(lease => lease.StartDate <= today && lease.EndDate >= today)
+            .Select(lease => lease.UnitId)
+            .ToListAsync();
+        var availableUnits = units.Where(unit => !activeLeaseUnitIds.Contains(unit.Id)).ToList();
         var unitIndex = 0;
 
         for (var i = 0; i < statuses.Length; i++)
         {
             var status = statuses[i];
+            if (await db.RentalApplications.AnyAsync(application => application.Status == status))
+            {
+                continue;
+            }
+
             var applicant = applicants[i % applicants.Count];
-            var unit = units[unitIndex++ % units.Count];
+            var unit = availableUnits[unitIndex++ % availableUnits.Count];
 
             var application = new RentalApplication
             {
@@ -201,6 +214,7 @@ public static class DbSeeder
                 ApplicantPhone = faker.Phone.PhoneNumber("##########"),
                 ApplicantEmail = applicant.Email!,
                 CurrentAddress = faker.Address.FullAddress(),
+                DesiredLeaseStartDate = DateOnly.FromDateTime(now.AddDays(faker.Random.Int(7, 45))),
                 ApplicantInfoCompleted = status != ApplicationStatus.Draft || faker.Random.Bool(),
                 ResidenceHistoryCompleted = status != ApplicationStatus.Draft
             };

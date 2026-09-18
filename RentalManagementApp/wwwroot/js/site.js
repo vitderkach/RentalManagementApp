@@ -1,3 +1,16 @@
+// Registers client validation for forms inserted after the initial page load.
+window.initializeUnobtrusiveValidation = function (container) {
+    if (!window.jQuery || !jQuery.validator || !jQuery.validator.unobtrusive) return;
+
+    var forms = jQuery(container).find('form').addBack('form');
+    forms.each(function () {
+        var form = jQuery(this);
+        form.removeData('validator');
+        form.removeData('unobtrusiveValidation');
+        jQuery.validator.unobtrusive.parse(form);
+    });
+};
+
 // Generic handling for modal forms that are populated from partial views returned by the
 // server. On success, the modal is closed and the page reloads to refresh the affected area.
 // On validation failure (HTTP 400), the server re-renders the same partial with validation
@@ -26,11 +39,20 @@ document.addEventListener('submit', function (e) {
         return response.text().then(function (html) {
             if (modalBody) {
                 modalBody.innerHTML = html;
+                window.initializeUnobtrusiveValidation(modalBody);
             } else {
                 alert('Action failed: ' + html);
             }
         });
     }).catch(function () {
-        window.location.reload();
+            if (modalBody) {
+                var error = document.createElement('div');
+                error.className = 'alert alert-danger m-3';
+                error.setAttribute('role', 'alert');
+                error.textContent = 'The request could not be completed. Please check your connection and try again.';
+                modalBody.prepend(error);
+            } else {
+                alert('The request could not be completed. Please check your connection and try again.');
+            }
+        });
     });
-});

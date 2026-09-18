@@ -32,6 +32,7 @@ public class ApplicantInfoInputModel
     public string LastName { get; set; } = string.Empty;
 
     [Required, Phone, StringLength(30)]
+    [RegularExpression(@"^\+?[0-9\s().-]{7,30}$", ErrorMessage = "Enter a valid phone number.")]
     public string Phone { get; set; } = string.Empty;
 
     [Required, EmailAddress, StringLength(200)]
@@ -39,6 +40,9 @@ public class ApplicantInfoInputModel
 
     [Required, StringLength(300), Display(Name = "Current address")]
     public string CurrentAddress { get; set; } = string.Empty;
+
+    [Required, DataType(DataType.Date), Display(Name = "Desired lease start date")]
+    public DateOnly DesiredLeaseStartDate { get; set; }
 }
 
 public class ResidenceViewModel
@@ -51,7 +55,7 @@ public class ResidenceViewModel
     public DateOnly? MoveOutDate { get; set; }
 }
 
-public class ResidenceFormViewModel
+public class ResidenceFormViewModel : IValidatableObject
 {
     public int? Id { get; set; }
 
@@ -65,6 +69,7 @@ public class ResidenceFormViewModel
     public string LandlordName { get; set; } = string.Empty;
 
     [Required, Phone, StringLength(30), Display(Name = "Landlord phone")]
+    [RegularExpression(@"^\+?[0-9\s().-]{7,30}$", ErrorMessage = "Enter a valid phone number.")]
     public string LandlordPhone { get; set; } = string.Empty;
 
     [Required, DataType(DataType.Date), Display(Name = "Move-in date")]
@@ -72,4 +77,14 @@ public class ResidenceFormViewModel
 
     [DataType(DataType.Date), Display(Name = "Move-out date")]
     public DateOnly? MoveOutDate { get; set; }
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (MoveOutDate is { } moveOut && moveOut < MoveInDate)
+        {
+            yield return new ValidationResult(
+                "Move-out date cannot be earlier than the move-in date.",
+                new[] { nameof(MoveOutDate) });
+        }
+    }
 }

@@ -82,7 +82,9 @@
             if (propBtn) {
                 var id = propBtn.dataset.id || '';
                 fetch(`/Properties/PropertyModal?id=${id}`).then(r => r.text()).then(html => {
-                    document.getElementById('propertyModalBody').innerHTML = html;
+                    var modalBody = document.getElementById('propertyModalBody');
+                    modalBody.innerHTML = html;
+                    window.initializeUnobtrusiveValidation(modalBody);
                     new bootstrap.Modal(document.getElementById('propertyModal')).show();
                 });
             }
@@ -92,7 +94,9 @@
                 var propertyId = unitBtn.dataset.propertyId;
                 var unitId = unitBtn.dataset.unitId || '';
                 fetch(`/Properties/UnitModal?propertyId=${propertyId}&id=${unitId}`).then(r => r.text()).then(html => {
-                    document.getElementById('unitModalBody').innerHTML = html;
+                    var modalBody = document.getElementById('unitModalBody');
+                    modalBody.innerHTML = html;
+                    window.initializeUnobtrusiveValidation(modalBody);
                     new bootstrap.Modal(document.getElementById('unitModal')).show();
                 });
             }

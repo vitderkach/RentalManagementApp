@@ -22,6 +22,8 @@
             <dt class="col-sm-3">Email</dt><dd class="col-sm-9">@Model.ApplicantEmail</dd>
             <dt class="col-sm-3">Phone</dt><dd class="col-sm-9">@Model.ApplicantPhone</dd>
             <dt class="col-sm-3">Current Address</dt><dd class="col-sm-9">@Model.CurrentAddress</dd>
+            <dt class="col-sm-3">Desired Lease Start</dt><dd class="col-sm-9">@(Model.DesiredLeaseStartDate?.ToString("MM/dd/yyyy") ?? "Not specified")</dd>
+            <dt class="col-sm-3">Desired Lease End</dt><dd class="col-sm-9">@(Model.DesiredLeaseStartDate?.AddMonths(12).AddDays(-1).ToString("MM/dd/yyyy") ?? "Not specified")</dd>
         </dl>
     </div>
 </div>
@@ -101,7 +103,9 @@
             var btn = e.target.closest('.open-review-modal');
             if (!btn) return;
             fetch(`/Applications/ReviewModal?id=${btn.dataset.id}`).then(r => r.text()).then(html => {
-                document.getElementById('reviewModalBody').innerHTML = html;
+                var modalBody = document.getElementById('reviewModalBody');
+                modalBody.innerHTML = html;
+                window.initializeUnobtrusiveValidation(modalBody);
                 new bootstrap.Modal(document.getElementById('reviewModal')).show();
             });
         });

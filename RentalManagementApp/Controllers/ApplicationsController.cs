@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using RentalManagementApp.Data;
 using RentalManagementApp.Data.Entities;
 using RentalManagementApp.Data.Enums;
+using RentalManagementApp.Services.Contracts;
 using RentalManagementApp.Services.Interfaces;
 using RentalManagementApp.ViewModels.Applications;
 using RentalManagementApp.ViewModels.Applications.Enums;
@@ -135,6 +136,7 @@ public class ApplicationsController : Controller
             ApplicantEmail = application.ApplicantEmail,
             ApplicantPhone = application.ApplicantPhone,
             CurrentAddress = application.CurrentAddress,
+            DesiredLeaseStartDate = application.DesiredLeaseStartDate,
             Residences = application.Residences.Select(MapResidence).ToList(),
             StatusHistory = application.StatusHistory
                 .OrderBy(h => h.ChangedAt)
@@ -202,7 +204,9 @@ public class ApplicationsController : Controller
                 LastName = application.ApplicantLastName,
                 Phone = application.ApplicantPhone,
                 Email = application.ApplicantEmail,
-                CurrentAddress = application.CurrentAddress
+                CurrentAddress = application.CurrentAddress,
+                DesiredLeaseStartDate = application.DesiredLeaseStartDate
+                    ?? DateOnly.FromDateTime(DateTime.UtcNow)
             },
             Residences = application.Residences.Select(MapResidence).ToList()
         };
@@ -239,7 +243,7 @@ public class ApplicationsController : Controller
             }
 
             var result = await _workflow.SaveApplicantInfoAsync(applicationId, userId,
-                new ApplicantInfoInput(applicantInfo.FirstName, applicantInfo.LastName, applicantInfo.Phone, applicantInfo.Email, applicantInfo.CurrentAddress));
+                new ApplicantInfoInput(applicantInfo.FirstName, applicantInfo.LastName, applicantInfo.Phone, applicantInfo.Email, applicantInfo.CurrentAddress, applicantInfo.DesiredLeaseStartDate));
 
             if (!result.Succeeded)
             {
@@ -266,23 +270,19 @@ public class ApplicationsController : Controller
             return RedirectToAction(nameof(Wizard), new { id = applicationId, section = WizardSection.Summary });
         }
 
-        return RedirectToAction(nameof(Wizard), new { id = applicationId });
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    [Authorize(Policy = "RequireApplicant")]
-    public async Task<IActionResult> Submit(int applicationId)
-    {
-        var userId = _userManager.GetUserId(User)!;
-        var result = await _workflow.SubmitAsync(applicationId, userId);
-        if (!result.Succeeded)
+        if (currentSection == WizardSection.Summary && action == "submit")
         {
-            TempData["Error"] = result.Error;
-            return RedirectToAction(nameof(Wizard), new { id = applicationId, section = WizardSection.Summary });
+            var result = await _workflow.SubmitAsync(applicationId, userId);
+            if (!result.Succeeded)
+            {
+                TempData["Error"] = result.Error;
+                return RedirectToAction(nameof(Wizard), new { id = applicationId, section = WizardSection.Summary });
+            }
+
+            return RedirectToAction(nameof(Details), new { id = applicationId });
         }
 
-        return RedirectToAction(nameof(Details), new { id = applicationId });
+        return RedirectToAction(nameof(Wizard), new { id = applicationId });
     }
 
     [Authorize(Policy = "RequireApplicant")]
@@ -293,7 +293,11 @@ public class ApplicationsController : Controller
             .FirstOrDefaultAsync(a => a.Id == applicationId && a.ApplicantId == userId);
         if (application is null) return NotFound();
 
-        var model = new ResidenceFormViewModel { ApplicationId = applicationId };
+        var model = new ResidenceFormViewModel
+        {
+            ApplicationId = applicationId,
+            MoveInDate = DateOnly.FromDateTime(DateTime.UtcNow)
+        };
         if (id is { } residenceId)
         {
             var residence = application.Residences.FirstOrDefault(r => r.Id == residenceId);
@@ -363,7 +367,7 @@ public class ApplicationsController : Controller
     [Authorize(Policy = "RequirePropertyManager")]
     public async Task<IActionResult> Review(ReviewFormViewModel model)
     {
-        if (model.Outcome != ReviewOutcome.Approve && string.IsNullOrWhiteSpace(model.Comment))
+        if (model.Outcome != ApplicationReviewOutcome.Approve && string.IsNullOrWhiteSpace(model.Comment))
         {
             ModelState.AddModelError(nameof(model.Comment), "A comment is required for this outcome.");
         }

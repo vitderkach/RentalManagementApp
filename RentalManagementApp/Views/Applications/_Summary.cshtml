@@ -10,6 +10,7 @@
             <dt class="col-sm-3">Phone</dt><dd class="col-sm-9">@Model.ApplicantInfo.Phone</dd>
             <dt class="col-sm-3">Email</dt><dd class="col-sm-9">@Model.ApplicantInfo.Email</dd>
             <dt class="col-sm-3">Current Address</dt><dd class="col-sm-9">@Model.ApplicantInfo.CurrentAddress</dd>
+            <dt class="col-sm-3">Desired Lease Start</dt><dd class="col-sm-9">@Model.ApplicantInfo.DesiredLeaseStartDate.ToString("MM/dd/yyyy")</dd>
         </dl>
     </div>
 </div>
@@ -44,25 +45,21 @@
     <div class="alert alert-warning">Both sections must be completed before this application can be submitted.</div>
 }
 
-<div class="d-flex gap-2">
-    <form method="post" asp-controller="Applications" asp-action="WizardStep">
-        @Html.AntiForgeryToken()
-        <input type="hidden" name="applicationId" value="@Model.ApplicationId" />
-        <input type="hidden" name="currentSection" value="@RentalManagementApp.ViewModels.Applications.Enums.WizardSection.Summary" />
-        
-        <button type="submit" name="action" value="back" formnovalidate class="btn btn-outline-secondary">Back</button>
-    </form>
+<form method="post" asp-controller="Applications" asp-action="WizardStep">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="applicationId" value="@Model.ApplicationId" />
+    <input type="hidden" name="currentSection" value="@RentalManagementApp.ViewModels.Applications.Enums.WizardSection.Summary" />
 
-    @if (Model.CanSubmit)
-    {
-        <form method="post" asp-controller="Applications" asp-action="Submit">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="applicationId" value="@Model.ApplicationId" />
-            <button type="submit" class="btn btn-success">Submit Application</button>
-        </form>
-    }
-    else if (!Model.IsReadOnly)
-    {
-        <button type="button" class="btn btn-success" disabled>Submit Application</button>
-    }
-</div>
+    <div class="d-flex gap-2">
+        <button type="submit" name="action" value="back" formnovalidate class="btn btn-outline-secondary">Back</button>
+
+        @if (Model.CanSubmit)
+        {
+            <button type="submit" name="action" value="submit" class="btn btn-success">Submit Application</button>
+        }
+        else if (!Model.IsReadOnly)
+        {
+            <button type="button" class="btn btn-success" disabled>Submit Application</button>
+        }
+    </div>
+</form>
